@@ -1,12 +1,30 @@
 pub struct Event {
     pub event_type: String,
+    pub target_value: Option<String>,
+    pub checked: Option<bool>,
 }
 
 impl Event {
     pub fn new(event_type: impl Into<String>) -> Self {
         Self {
             event_type: event_type.into(),
+            target_value: None,
+            checked: None,
         }
+    }
+
+    pub fn with_target_value(mut self, value: String) -> Self {
+        self.target_value = Some(value);
+        self
+    }
+
+    pub fn with_checked(mut self, checked: bool) -> Self {
+        self.checked = Some(checked);
+        self
+    }
+
+    pub fn value(&self) -> &str {
+        self.target_value.as_deref().unwrap_or("")
     }
 }
 

@@ -41,6 +41,8 @@ features = [
     "InputEvent",
     "HtmlInputElement",
     "HtmlAnchorElement",
+    "HtmlTextAreaElement",
+    "HtmlSelectElement",
     "DomTokenList",
     "CssStyleDeclaration",
     "Response",

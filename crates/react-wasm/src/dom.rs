@@ -45,9 +45,22 @@ impl WasmEvent {
     }
 
     pub fn target_value(&self) -> Option<String> {
-        self.inner
-            .target()
-            .and_then(|t| t.dyn_ref::<web_sys::HtmlInputElement>().map(|e| e.value()))
+        self.inner.target().and_then(|t| {
+            t.dyn_ref::<web_sys::HtmlInputElement>()
+                .map(|e| e.value())
+                .or_else(|| {
+                    t.dyn_ref::<web_sys::HtmlTextAreaElement>()
+                        .map(|e| e.value())
+                })
+                .or_else(|| t.dyn_ref::<web_sys::HtmlSelectElement>().map(|e| e.value()))
+        })
+    }
+
+    pub fn target_checked(&self) -> Option<bool> {
+        self.inner.target().and_then(|t| {
+            t.dyn_ref::<web_sys::HtmlInputElement>()
+                .map(|e| e.checked())
+        })
     }
 }
 
@@ -173,7 +186,14 @@ fn render_element(document: &Document, element: &Element) -> Result<web_sys::Nod
         register_event_callback(
             event_id,
             Rc::new(move |wasm_event: WasmEvent| {
-                let react_event = react_rs_elements::events::Event::new(wasm_event.inner().type_());
+                let mut react_event =
+                    react_rs_elements::events::Event::new(wasm_event.inner().type_());
+                if let Some(val) = wasm_event.target_value() {
+                    react_event = react_event.with_target_value(val);
+                }
+                if let Some(checked) = wasm_event.target_checked() {
+                    react_event = react_event.with_checked(checked);
+                }
                 callback(react_event);
             }),
         );

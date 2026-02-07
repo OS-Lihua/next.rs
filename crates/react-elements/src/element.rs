@@ -63,6 +63,15 @@ impl Element {
         self
     }
 
+    pub fn styled(self, style: crate::style::Style) -> Self {
+        let css = style.to_css();
+        if css.is_empty() {
+            self
+        } else {
+            self.style(&css)
+        }
+    }
+
     pub fn attr(mut self, name: &str, value: &str) -> Self {
         self.attributes.push(Attribute::new(name, value));
         self
@@ -96,6 +105,26 @@ impl Element {
     pub fn value(mut self, value: &str) -> Self {
         self.attributes.push(Attribute::new("value", value));
         self
+    }
+
+    pub fn value_reactive(mut self, value: impl IntoReactiveString) -> Self {
+        self.attributes.push(Attribute::reactive_string(
+            "value",
+            value.into_reactive_string(),
+        ));
+        self
+    }
+
+    pub fn bind_value(
+        self,
+        read: react_rs_core::signal::ReadSignal<String>,
+        write: react_rs_core::signal::WriteSignal<String>,
+    ) -> Self {
+        use crate::reactive::SignalExt;
+        self.value_reactive(read.map(|s| s.clone()))
+            .on_input(move |e| {
+                write.set(e.value().to_string());
+            })
     }
 
     pub fn placeholder(mut self, placeholder: &str) -> Self {

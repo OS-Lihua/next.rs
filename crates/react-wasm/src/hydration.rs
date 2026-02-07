@@ -138,7 +138,14 @@ fn hydrate_element(element: &Element, dom_node: &web_sys::Node) -> HydrationResu
         crate::dom::register_event_callback(
             event_id,
             Rc::new(move |wasm_event: crate::dom::WasmEvent| {
-                let react_event = react_rs_elements::events::Event::new(wasm_event.inner().type_());
+                let mut react_event =
+                    react_rs_elements::events::Event::new(wasm_event.inner().type_());
+                if let Some(val) = wasm_event.target_value() {
+                    react_event = react_event.with_target_value(val);
+                }
+                if let Some(checked) = wasm_event.target_checked() {
+                    react_event = react_event.with_checked(checked);
+                }
                 callback(react_event);
             }),
         );
