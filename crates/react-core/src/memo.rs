@@ -92,15 +92,15 @@ mod tests {
             count.get() % 2 == 0
         });
 
-        assert_eq!(is_even.get(), false);
+        assert!(!is_even.get());
         let count_after_init = *compute_count.borrow();
 
         set_count.set(3);
-        assert_eq!(is_even.get(), false);
+        assert!(!is_even.get());
         assert_eq!(*compute_count.borrow(), count_after_init + 1);
 
         set_count.set(4);
-        assert_eq!(is_even.get(), true);
+        assert!(is_even.get());
         assert_eq!(*compute_count.borrow(), count_after_init + 2);
     }
 

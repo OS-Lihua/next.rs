@@ -154,7 +154,7 @@ mod tests {
         let result = matcher.match_path("/shop");
         assert!(result.is_some());
         let matched = result.unwrap();
-        assert!(matched.params.get("categories").is_none());
+        assert!(!matched.params.contains_key("categories"));
 
         let result = matcher.match_path("/shop/electronics/phones");
         assert!(result.is_some());

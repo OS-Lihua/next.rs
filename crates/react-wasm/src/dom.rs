@@ -126,7 +126,7 @@ pub fn unregister_event_handler(event_id: usize) {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_module_compiles() {
-        assert!(true);
+    fn test_event_registry_accessible() {
+        let _ = super::EVENT_REGISTRY.try_with(|_| ());
     }
 }
