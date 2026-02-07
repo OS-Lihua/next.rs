@@ -202,6 +202,26 @@ impl Element {
         self
     }
 
+    pub fn show_when(self, condition: impl IntoReactiveBool) -> crate::node::Node {
+        crate::node::Node::Conditional(
+            condition.into_reactive_bool(),
+            Box::new(self.into_node()),
+            None,
+        )
+    }
+
+    pub fn show_when_else(
+        self,
+        condition: impl IntoReactiveBool,
+        else_node: impl IntoNode,
+    ) -> crate::node::Node {
+        crate::node::Node::Conditional(
+            condition.into_reactive_bool(),
+            Box::new(self.into_node()),
+            Some(Box::new(else_node.into_node())),
+        )
+    }
+
     pub fn has_class(&self, class_name: &str) -> bool {
         self.attributes.iter().any(|attr| {
             attr.name == "class" && matches!(&attr.value, crate::attributes::AttributeValue::String(v) if v.contains(class_name))
