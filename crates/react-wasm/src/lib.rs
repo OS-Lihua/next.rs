@@ -1,4 +1,5 @@
 mod dom;
+pub mod fetch;
 mod hydration;
 mod router;
 mod runtime;
