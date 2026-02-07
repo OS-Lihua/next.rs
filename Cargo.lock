@@ -724,6 +724,7 @@ name = "next-rs-router"
 version = "0.1.1"
 dependencies = [
  "react-rs-core",
+ "react-rs-dom",
  "react-rs-elements",
  "tempfile",
 ]
