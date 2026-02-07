@@ -11,8 +11,8 @@ categories.workspace = true
 description = "React Server Components implementation for next.rs"
 
 [dependencies]
-react-rs-core = { path = "../react-core" }
-react-rs-elements = { path = "../react-elements" }
+react-rs-core = { version = "0.1.0", path = "../react-core" }
+react-rs-elements = { version = "0.1.0", path = "../react-elements" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

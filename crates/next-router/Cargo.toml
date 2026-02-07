@@ -11,8 +11,8 @@ categories.workspace = true
 description = "App Router for next.rs - file system based routing with nested layouts"
 
 [dependencies]
-react-rs-core = { path = "../react-core" }
-react-rs-elements = { path = "../react-elements" }
+react-rs-core = { version = "0.1.0", path = "../react-core" }
+react-rs-elements = { version = "0.1.0", path = "../react-elements" }
 
 [dev-dependencies]
 tempfile = "3"
