@@ -146,7 +146,7 @@ fn hydrate_node(virtual_node: &Node, dom_node: &web_sys::Node) -> HydrationResul
 
             Ok(())
         }
-        Node::Head(_) => Ok(()),
+        Node::Head(_) | Node::Suspense(_) | Node::ErrorBoundary(_) => Ok(()),
     }
 }
 

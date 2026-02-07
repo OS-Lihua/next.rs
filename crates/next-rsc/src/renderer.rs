@@ -52,6 +52,20 @@ impl RscRenderer {
                 RscNode::element("fragment", json!({}), children)
             }
             Node::Head(_) => RscNode::text(""),
+            Node::Suspense(sus) => {
+                if (sus.loading_signal)() {
+                    self.render_node(&sus.fallback)
+                } else {
+                    self.render_node(&sus.children)
+                }
+            }
+            Node::ErrorBoundary(eb) => {
+                if let Some(error) = (eb.error_signal)() {
+                    self.render_node(&(eb.error_fallback)(error))
+                } else {
+                    self.render_node(&eb.children)
+                }
+            }
         }
     }
 

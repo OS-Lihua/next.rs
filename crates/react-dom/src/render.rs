@@ -57,6 +57,20 @@ fn render_node(node: &Node) -> String {
             )
         }
         Node::Head(_) => String::new(),
+        Node::Suspense(sus) => {
+            if (sus.loading_signal)() {
+                render_node(&sus.fallback)
+            } else {
+                render_node(&sus.children)
+            }
+        }
+        Node::ErrorBoundary(eb) => {
+            if let Some(error) = (eb.error_signal)() {
+                render_node(&(eb.error_fallback)(error))
+            } else {
+                render_node(&eb.children)
+            }
+        }
     }
 }
 

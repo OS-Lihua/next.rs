@@ -199,6 +199,79 @@ fn render_node(document: &Document, node: &Node) -> Result<web_sys::Node, JsValu
             let placeholder = document.create_text_node("");
             Ok(placeholder.into())
         }
+        Node::Suspense(sus) => {
+            use react_rs_core::effect::create_effect;
+
+            let fallback_dom = render_node(document, &sus.fallback)?;
+            let children_dom = render_node(document, &sus.children)?;
+
+            let fallback_el = fallback_dom.dyn_ref::<web_sys::Element>().cloned();
+            let children_el = children_dom.dyn_ref::<web_sys::Element>().cloned();
+
+            let container = document.create_element("span")?;
+            container.set_attribute("data-suspense", "")?;
+            container.set_attribute("style", "display:contents")?;
+            container.append_child(&fallback_dom)?;
+            container.append_child(&children_dom)?;
+
+            let loading = (sus.loading_signal)();
+            if let Some(ref el) = fallback_el {
+                let _ = el.set_attribute("style", if loading { "" } else { "display:none" });
+            }
+            if let Some(ref el) = children_el {
+                let _ = el.set_attribute("style", if loading { "display:none" } else { "" });
+            }
+
+            let loading_signal = sus.loading_signal.clone();
+            create_effect(move || {
+                let is_loading = loading_signal();
+                if let Some(ref el) = fallback_el {
+                    let _ = el.set_attribute("style", if is_loading { "" } else { "display:none" });
+                }
+                if let Some(ref el) = children_el {
+                    let _ = el.set_attribute("style", if is_loading { "display:none" } else { "" });
+                }
+            });
+
+            Ok(container.into())
+        }
+        Node::ErrorBoundary(eb) => {
+            use react_rs_core::effect::create_effect;
+
+            let children_dom = render_node(document, &eb.children)?;
+            let children_el = children_dom.dyn_ref::<web_sys::Element>().cloned();
+
+            let container = document.create_element("span")?;
+            container.set_attribute("data-error-boundary", "")?;
+            container.set_attribute("style", "display:contents")?;
+            container.append_child(&children_dom)?;
+
+            let container_rc = Rc::new(container.clone());
+            let error_signal = eb.error_signal.clone();
+            let error_fallback = eb.error_fallback.clone();
+
+            create_effect(move || {
+                if let Some(error) = error_signal() {
+                    if let Some(ref el) = children_el {
+                        let _ = el.set_attribute("style", "display:none");
+                    }
+                    while container_rc.child_nodes().length() > 1 {
+                        if let Some(last) = container_rc.last_child() {
+                            let _ = container_rc.remove_child(&last);
+                        }
+                    }
+                    let error_node = error_fallback(error);
+                    let doc = get_document();
+                    if let Ok(error_dom) = render_node_pub(&doc, &error_node) {
+                        let _ = container_rc.append_child(&error_dom);
+                    }
+                } else if let Some(ref el) = children_el {
+                    let _ = el.set_attribute("style", "");
+                }
+            });
+
+            Ok(container.into())
+        }
     }
 }
 

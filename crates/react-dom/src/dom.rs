@@ -38,7 +38,11 @@ fn create_dom_node(node: &Node) -> web_sys::Node {
         Node::Text(text) => create_text_node(text),
         Node::ReactiveText(reactive) => create_reactive_text_node(reactive),
         Node::Fragment(children) => create_fragment_node(children),
-        Node::Conditional(_, _, _) | Node::ReactiveList(_) | Node::Head(_) => create_text_node(""),
+        Node::Conditional(_, _, _)
+        | Node::ReactiveList(_)
+        | Node::Head(_)
+        | Node::Suspense(_)
+        | Node::ErrorBoundary(_) => create_text_node(""),
     }
 }
 
