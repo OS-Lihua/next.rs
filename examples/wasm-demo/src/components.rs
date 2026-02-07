@@ -1,5 +1,6 @@
 use react_rs_core::create_signal;
 use react_rs_elements::html;
+use react_rs_elements::node::{each, IntoNode, Node};
 use react_rs_elements::reactive::SignalExt;
 use react_rs_elements::Element;
 
@@ -13,12 +14,13 @@ pub fn navigation() -> Element {
     )
 }
 
-pub fn counter_widget() -> Element {
+pub fn counter_widget() -> Node {
     let (count, set_count) = create_signal(0);
 
     let inc = set_count.clone();
     let dec = set_count.clone();
     let reset = set_count.clone();
+    let high_count = count.map(|n| *n > 5);
 
     html::div()
         .class("counter-widget")
@@ -54,38 +56,69 @@ pub fn counter_widget() -> Element {
                         .on_click(move |_| inc.update(|n| *n += 1)),
                 ),
         )
+        .child(
+            html::p()
+                .class("high-count-msg")
+                .text("High count!")
+                .show_when(high_count),
+        )
+        .into_node()
 }
 
-pub fn todo_list() -> Element {
-    let (count, set_count) = create_signal(3);
+pub fn todo_list() -> Node {
+    let (todos, set_todos) = create_signal(vec![
+        "Learn Rust".to_string(),
+        "Build with next.rs".to_string(),
+        "Deploy to production".to_string(),
+    ]);
+    let (input_val, set_input) = create_signal(String::new());
 
-    let add_todo = set_count.clone();
+    let add_todos = set_todos.clone();
+    let add_input = input_val.clone();
+    let clear_input = set_input.clone();
+
+    let count_signal = todos.clone();
 
     html::div()
         .class("todo-widget")
-        .child(html::h3().text("Quick Todo"))
+        .child(html::h3().text("Dynamic Todo List"))
         .child(
-            html::ul()
-                .class("todo-list")
-                .child(html::li().class("todo-item").text("Learn Rust"))
-                .child(html::li().class("todo-item").text("Build with next.rs"))
-                .child(html::li().class("todo-item").text("Deploy to production")),
+            html::div()
+                .class("todo-input-row")
+                .child(
+                    html::input()
+                        .type_("text")
+                        .placeholder("Add a todo...")
+                        .class("form-input todo-input")
+                        .bind_value(input_val, set_input),
+                )
+                .child(
+                    html::button()
+                        .class("btn btn-add")
+                        .text("Add")
+                        .on_click(move |_| {
+                            let value = add_input.get_untracked();
+                            if !value.is_empty() {
+                                add_todos.update(|t| t.push(value));
+                                clear_input.set(String::new());
+                            }
+                        }),
+                ),
         )
+        .child(each(todos, |item, _i| {
+            html::li()
+                .class("todo-item")
+                .text(item.as_str())
+                .into_node()
+        }))
         .child(
             html::p()
                 .class("todo-count")
                 .text("Total: ")
-                .child(html::span().text_reactive(count.map(|n| n.to_string())))
+                .child(html::span().text_reactive(count_signal.map(|t| t.len().to_string())))
                 .child(html::span().text(" items")),
         )
-        .child(
-            html::button()
-                .class("btn btn-add")
-                .text("Add Todo")
-                .on_click(move |_| {
-                    add_todo.update(|n| *n += 1);
-                }),
-        )
+        .into_node()
 }
 
 pub fn greeting_form() -> Element {

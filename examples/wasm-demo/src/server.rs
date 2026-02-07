@@ -198,6 +198,23 @@ fn render_html(route: &str) -> String {
             border-radius: 4px;
             border-left: 3px solid #667eea;
         }}
+        .todo-input-row {{
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }}
+        .todo-input {{
+            flex: 1;
+        }}
+        .high-count-msg {{
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+        }}
         .btn-add {{
             margin-top: 15px;
             background: #667eea;

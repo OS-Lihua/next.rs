@@ -16,7 +16,7 @@ pub fn render_page(route: &str) -> Node {
     layout(content).into_node()
 }
 
-fn layout(content: react_rs_elements::Element) -> react_rs_elements::Element {
+fn layout(content: impl IntoNode) -> react_rs_elements::Element {
     html::div()
         .class("app")
         .child(
