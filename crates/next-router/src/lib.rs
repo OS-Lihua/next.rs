@@ -1,5 +1,7 @@
 mod boundary;
+mod hooks;
 mod layout;
+mod link;
 mod matcher;
 mod scanner;
 mod segment;
@@ -7,7 +9,9 @@ mod segment;
 pub use boundary::{
     BoundaryResolver, BoundaryStack, ErrorBoundary, LoadingBoundary, NotFoundBoundary,
 };
+pub use hooks::{use_params, use_pathname, use_router, use_search_params, RouterState};
 pub use layout::{LayoutResolver, RouteMetadata};
+pub use link::{link, Link};
 pub use matcher::{MatchedRoute, RouteMatcher};
 pub use scanner::{RouteScanner, SpecialFile};
 pub use segment::RouteSegment;
