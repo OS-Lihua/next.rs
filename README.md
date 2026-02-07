@@ -5,7 +5,7 @@
 [![Crates.io](https://img.shields.io/crates/v/react-rs-core.svg)](https://crates.io/crates/react-rs-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Next.js reimplemented in Rust, including a React-like UI framework with pure Rust API.
+Next.js reimplemented in Rust, including a React-like UI framework with pure Rust API. Zero unsafe code. All 11 crates published on [crates.io](https://crates.io/search?q=react-rs).
 
 ## Features
 
@@ -14,14 +14,17 @@ Next.js reimplemented in Rust, including a React-like UI framework with pure Rus
 - Fine-grained reactivity with Signals, Effects, and Memos
 - Context API for state sharing
 - Server-side rendering (SSR)
+- WASM runtime with client-side hydration
+- Event delegation (zero memory leaks)
 
 ### Next.js Features (next-rs)
 - File-system based routing (App Router)
+- `Link` component and `use_router` / `use_pathname` / `use_params` hooks
 - Nested layouts with loading/error boundaries
 - Static Site Generation (SSG)
 - Incremental Static Regeneration (ISR)
 - HTTP Streaming with Suspense
-- React Server Components
+- React Server Components with `use_client!` / `use_server!` directives
 - Server Actions
 - Middleware
 - Image and Font optimization
@@ -94,9 +97,10 @@ app/
 | `react-rs-core` | Signal/Effect/Memo/Context reactivity system |
 | `react-rs-elements` | Pure Rust element API (div, span, etc.) |
 | `react-rs-dom` | Server-side rendering |
-| `next-rs-router` | File-system routing and layouts |
+| `react-rs-wasm` | WASM runtime, hydration, event delegation |
+| `next-rs-router` | File-system routing, Link component, hooks |
 | `next-rs-server` | HTTP server with SSR/SSG/ISR |
-| `next-rs-rsc` | React Server Components |
+| `next-rs-rsc` | React Server Components, use_client!/use_server! |
 | `next-rs-actions` | Server Actions |
 | `next-rs-middleware` | Request middleware |
 | `next-rs-assets` | Image/Font optimization |
@@ -108,6 +112,22 @@ app/
 - `examples/counter` - Reactive counter with signals
 - `examples/todo-app` - Todo application
 - `examples/blog` - Blog with App Router
+- `examples/wasm-demo` - Full SSR + WASM hydration demo with routing
+
+## Benchmarks
+
+```
+signal_create             17.3 ns
+signal_get                0.27 ns
+signal_set                2.8 ns
+signal_set + 1 effect     9.8 ns
+signal_set + 10 effects   108 ns
+effect_create             16.8 ns
+memo_get                  2.1 ns
+deep_chain_3_memos        32 ns
+```
+
+Run with: `cargo bench -p react-rs-core`
 
 ## License
 
