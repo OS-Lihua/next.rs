@@ -203,6 +203,42 @@ fn render_html(route: &str) -> String {
             background: #667eea;
             color: white;
         }}
+        .greeting-form {{
+            margin-top: 30px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            display: inline-block;
+            text-align: left;
+        }}
+        .form-group {{
+            margin-bottom: 15px;
+        }}
+        .form-group label {{
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }}
+        .form-input {{
+            padding: 10px 16px;
+            font-size: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.9);
+            width: 300px;
+            outline: none;
+        }}
+        .form-input:focus {{
+            border-color: #667eea;
+        }}
+        .greeting-output {{
+            font-size: 1.3rem;
+            margin-top: 15px;
+        }}
+        .greeting-name {{
+            font-weight: bold;
+            color: #ffd700;
+        }}
         .footer {{
             text-align: center;
             padding: 20px;

@@ -88,6 +88,45 @@ pub fn todo_list() -> Element {
         )
 }
 
+pub fn greeting_form() -> Element {
+    let (name, set_name) = create_signal(String::new());
+
+    let display_name = name.clone();
+
+    html::div()
+        .class("greeting-form")
+        .child(html::h3().text("Greeting Form"))
+        .child(
+            html::div()
+                .class("form-group")
+                .child(html::label().text("Your name:"))
+                .child(
+                    html::input()
+                        .type_("text")
+                        .placeholder("Type your name...")
+                        .class("form-input")
+                        .bind_value(name, set_name),
+                ),
+        )
+        .child(
+            html::p()
+                .class("greeting-output")
+                .text("Hello, ")
+                .child(
+                    html::span()
+                        .class("greeting-name")
+                        .text_reactive(display_name.map(|n| {
+                            if n.is_empty() {
+                                "World".to_string()
+                            } else {
+                                n.clone()
+                            }
+                        })),
+                )
+                .child(html::span().text("!")),
+        )
+}
+
 pub fn feature_card(title: &str, description: &str) -> Element {
     html::div()
         .class("feature-card")

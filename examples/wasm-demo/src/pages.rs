@@ -1,7 +1,9 @@
 use react_rs_elements::html;
 use react_rs_elements::node::{IntoNode, Node};
 
-use crate::components::{counter_widget, feature_card, navigation, site_footer, todo_list};
+use crate::components::{
+    counter_widget, feature_card, greeting_form, navigation, site_footer, todo_list,
+};
 
 pub fn render_page(route: &str) -> Node {
     let content = match route {
@@ -72,8 +74,9 @@ fn home_page() -> react_rs_elements::Element {
         .child(
             html::section()
                 .class("demo-section")
-                .child(html::h2().text("Live Demo"))
-                .child(counter_widget()),
+                .child(html::h2().text("Live Demos"))
+                .child(counter_widget())
+                .child(greeting_form()),
         )
 }
 
