@@ -12,9 +12,6 @@ pub use runtime::{ClientComponentRegistry, RscRuntime};
 
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(start)]
-pub fn init() {}
-
 #[wasm_bindgen]
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! From react.rs WASM runtime.", name)

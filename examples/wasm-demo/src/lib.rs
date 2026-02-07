@@ -20,17 +20,15 @@ mod wasm {
 
         web_sys::console::log_1(&format!("Hydrating route: {}", pathname).into());
 
-        react_rs_wasm::setup_link_interception(Box::new(|path| {
-            web_sys::console::log_1(&format!("Navigating to: {}", path).into());
-            let node = render_app(&path);
-            let _ = react_rs_wasm::mount(&node, "app");
-        }));
+        react_rs_wasm::setup_link_interception();
 
         let node = render_app(&pathname);
         match react_rs_wasm::hydrate(&node, "app") {
             Ok(_) => web_sys::console::log_1(&"Hydration successful!".into()),
             Err(e) => {
-                web_sys::console::error_1(&format!("Hydration failed: {:?}, mounting fresh", e).into());
+                web_sys::console::error_1(
+                    &format!("Hydration failed: {:?}, mounting fresh", e).into(),
+                );
                 let _ = react_rs_wasm::mount(&node, "app");
             }
         }
