@@ -37,6 +37,21 @@ impl RscRenderer {
                 let children: Vec<RscNode> = nodes.iter().map(|n| self.render_node(n)).collect();
                 RscNode::element("fragment", json!({}), children)
             }
+            Node::Conditional(condition, then_node, else_node) => {
+                if condition.get() {
+                    self.render_node(then_node)
+                } else if let Some(else_n) = else_node {
+                    self.render_node(else_n)
+                } else {
+                    RscNode::text("")
+                }
+            }
+            Node::ReactiveList(list_fn) => {
+                let children: Vec<RscNode> =
+                    list_fn().iter().map(|n| self.render_node(n)).collect();
+                RscNode::element("fragment", json!({}), children)
+            }
+            Node::Head(_) => RscNode::text(""),
         }
     }
 

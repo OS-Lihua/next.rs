@@ -22,6 +22,41 @@ fn render_node(node: &Node) -> String {
             .map(render_node)
             .collect::<Vec<_>>()
             .join(""),
+        Node::Conditional(condition, then_node, else_node) => {
+            let show = condition.get();
+            let then_html = render_node(then_node);
+            let else_html = else_node
+                .as_ref()
+                .map(|n| render_node(n))
+                .unwrap_or_default();
+
+            let then_style = if show { "" } else { " style=\"display:none\"" };
+            let else_style = if show { " style=\"display:none\"" } else { "" };
+
+            if else_html.is_empty() {
+                format!(
+                    "<span data-cond style=\"display:contents\"><span{}>{}</span></span>",
+                    then_style, then_html
+                )
+            } else {
+                format!(
+                    "<span data-cond style=\"display:contents\"><span{}>{}</span><span{}>{}</span></span>",
+                    then_style, then_html, else_style, else_html
+                )
+            }
+        }
+        Node::ReactiveList(list_fn) => {
+            let items_html = list_fn()
+                .iter()
+                .map(render_node)
+                .collect::<Vec<_>>()
+                .join("");
+            format!(
+                "<span data-list style=\"display:contents\">{}</span>",
+                items_html
+            )
+        }
+        Node::Head(_) => String::new(),
     }
 }
 
