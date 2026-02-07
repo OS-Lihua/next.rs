@@ -90,6 +90,10 @@ pub fn render_to_dom(node: &Node) -> Result<web_sys::Node, JsValue> {
     render_node(&document, node)
 }
 
+pub fn render_node_pub(document: &Document, node: &Node) -> Result<web_sys::Node, JsValue> {
+    render_node(document, node)
+}
+
 fn render_node(document: &Document, node: &Node) -> Result<web_sys::Node, JsValue> {
     match node {
         Node::Element(element) => render_element(document, element),
@@ -120,6 +124,80 @@ fn render_node(document: &Document, node: &Node) -> Result<web_sys::Node, JsValu
                 fragment.append_child(&child_node)?;
             }
             Ok(fragment.into())
+        }
+        Node::Conditional(condition, then_node, else_node) => {
+            use react_rs_core::effect::create_effect;
+
+            let then_dom = render_node(document, then_node)?;
+            let then_el = then_dom.dyn_ref::<web_sys::Element>().cloned();
+
+            let else_dom = else_node
+                .as_ref()
+                .map(|en| render_node(document, en))
+                .transpose()?;
+            let else_el = else_dom
+                .as_ref()
+                .and_then(|n| n.dyn_ref::<web_sys::Element>().cloned());
+
+            let container = document.create_element("span")?;
+            container.set_attribute("data-cond", "")?;
+            container.set_attribute("style", "display:contents")?;
+            container.append_child(&then_dom)?;
+            if let Some(ref ed) = else_dom {
+                container.append_child(ed)?;
+            }
+
+            let show = condition.get();
+            if let Some(ref el) = then_el {
+                let _ = el.set_attribute("style", if show { "" } else { "display:none" });
+            }
+            if let Some(ref el) = else_el {
+                let _ = el.set_attribute("style", if show { "display:none" } else { "" });
+            }
+
+            let condition = condition.clone();
+            create_effect(move || {
+                let visible = condition.get();
+                if let Some(ref el) = then_el {
+                    let _ = el.set_attribute("style", if visible { "" } else { "display:none" });
+                }
+                if let Some(ref el) = else_el {
+                    let _ = el.set_attribute("style", if visible { "display:none" } else { "" });
+                }
+            });
+
+            Ok(container.into())
+        }
+        Node::ReactiveList(list_fn) => {
+            use react_rs_core::effect::create_effect;
+
+            let container = document.create_element("span")?;
+            container.set_attribute("data-list", "")?;
+            container.set_attribute("style", "display:contents")?;
+
+            for child_node in list_fn() {
+                let dom_child = render_node(document, &child_node)?;
+                container.append_child(&dom_child)?;
+            }
+
+            let container_rc = Rc::new(container.clone());
+            let list_fn = list_fn.clone();
+
+            create_effect(move || {
+                container_rc.set_inner_html("");
+                let doc = get_document();
+                for child_node in list_fn() {
+                    if let Ok(dom_child) = render_node(&doc, &child_node) {
+                        let _ = container_rc.append_child(&dom_child);
+                    }
+                }
+            });
+
+            Ok(container.into())
+        }
+        Node::Head(_) => {
+            let placeholder = document.create_text_node("");
+            Ok(placeholder.into())
         }
     }
 }

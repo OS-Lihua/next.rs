@@ -78,6 +78,75 @@ fn hydrate_node(virtual_node: &Node, dom_node: &web_sys::Node) -> HydrationResul
             }
             Ok(())
         }
+        Node::Conditional(condition, then_node, else_node) => {
+            use react_rs_core::effect::create_effect;
+
+            let dom_element = dom_node.dyn_ref::<web_sys::Element>().ok_or_else(|| {
+                HydrationError::NodeMismatch {
+                    expected: "conditional-container".to_string(),
+                    found: "non-element".to_string(),
+                }
+            })?;
+
+            let children = dom_element.child_nodes();
+            if let Some(first) = children.get(0) {
+                hydrate_node(then_node, &first)?;
+            }
+            if let Some(else_n) = else_node {
+                if let Some(second) = children.get(1) {
+                    hydrate_node(else_n, &second)?;
+                }
+            }
+
+            let cond_children = dom_element.child_nodes();
+            let then_el: Option<Rc<web_sys::Element>> = cond_children
+                .get(0)
+                .and_then(|n| n.dyn_into::<web_sys::Element>().ok())
+                .map(Rc::new);
+            let else_el: Option<Rc<web_sys::Element>> = cond_children
+                .get(1)
+                .and_then(|n| n.dyn_into::<web_sys::Element>().ok())
+                .map(Rc::new);
+
+            let condition = condition.clone();
+            create_effect(move || {
+                let visible = condition.get();
+                if let Some(ref el) = then_el {
+                    let _ = el.set_attribute("style", if visible { "" } else { "display:none" });
+                }
+                if let Some(ref el) = else_el {
+                    let _ = el.set_attribute("style", if visible { "display:none" } else { "" });
+                }
+            });
+
+            Ok(())
+        }
+        Node::ReactiveList(list_fn) => {
+            use react_rs_core::effect::create_effect;
+
+            let dom_element = dom_node.dyn_ref::<web_sys::Element>().ok_or_else(|| {
+                HydrationError::NodeMismatch {
+                    expected: "list-container".to_string(),
+                    found: "non-element".to_string(),
+                }
+            })?;
+
+            let container_rc = Rc::new(dom_element.clone());
+            let list_fn = list_fn.clone();
+
+            create_effect(move || {
+                container_rc.set_inner_html("");
+                let doc = get_document();
+                for child_node in list_fn() {
+                    if let Ok(dom_child) = crate::dom::render_node_pub(&doc, &child_node) {
+                        let _ = container_rc.append_child(&dom_child);
+                    }
+                }
+            });
+
+            Ok(())
+        }
+        Node::Head(_) => Ok(()),
     }
 }
 
