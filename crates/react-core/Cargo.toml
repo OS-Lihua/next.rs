@@ -3,7 +3,12 @@ name = "react-rs-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Core reactive primitives for react.rs"
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Core reactive primitives for react.rs - Signal, Effect, Memo, Context"
 
 [dependencies]
 

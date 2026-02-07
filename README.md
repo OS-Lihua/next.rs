@@ -1,5 +1,10 @@
 # next.rs
 
+[![CI](https://github.com/OS-Lihua/next.rs/actions/workflows/ci.yml/badge.svg)](https://github.com/OS-Lihua/next.rs/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/OS-Lihua/next.rs/graph/badge.svg)](https://codecov.io/gh/OS-Lihua/next.rs)
+[![Crates.io](https://img.shields.io/crates/v/react-rs-core.svg)](https://crates.io/crates/react-rs-core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Next.js reimplemented in Rust, including a React-like UI framework with pure Rust API.
 
 ## Features

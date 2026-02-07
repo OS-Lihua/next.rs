@@ -9,7 +9,11 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/user/react.rs"
+repository = "https://github.com/OS-Lihua/next.rs"
+homepage = "https://github.com/OS-Lihua/next.rs"
+authors = ["OS-Lihua"]
+keywords = ["react", "nextjs", "wasm", "ssr", "web"]
+categories = ["web-programming", "wasm", "gui"]
 
 [workspace.dependencies]
 # Shared dependencies will be added here

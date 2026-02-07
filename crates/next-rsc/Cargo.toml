@@ -3,6 +3,11 @@ name = "next-rs-rsc"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
 description = "React Server Components implementation for next.rs"
 
 [dependencies]

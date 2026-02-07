@@ -3,7 +3,12 @@ name = "react-rs-dom"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DOM rendering for react.rs - Web platform support via WebAssembly"
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "DOM rendering and SSR for react.rs"
 
 [dependencies]
 react-rs-core = { path = "../react-core" }

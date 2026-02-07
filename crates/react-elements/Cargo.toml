@@ -3,6 +3,11 @@ name = "react-rs-elements"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
 description = "HTML element API for react.rs with pure Rust method chaining"
 
 [dependencies]
