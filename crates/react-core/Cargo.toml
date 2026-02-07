@@ -13,3 +13,8 @@ description = "Core reactive primitives for react.rs - Signal, Effect, Memo, Con
 [dependencies]
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "reactivity"
+harness = false
