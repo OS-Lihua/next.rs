@@ -12,7 +12,7 @@ impl Event {
 
 pub struct EventHandler {
     pub event_type: String,
-    pub handler: Box<dyn Fn(Event)>,
+    handler: std::rc::Rc<dyn Fn(Event)>,
 }
 
 impl EventHandler {
@@ -22,7 +22,7 @@ impl EventHandler {
     {
         Self {
             event_type: event_type.into(),
-            handler: Box::new(handler),
+            handler: std::rc::Rc::new(handler),
         }
     }
 
@@ -32,5 +32,9 @@ impl EventHandler {
 
     pub fn invoke(&self, event: Event) {
         (self.handler)(event);
+    }
+
+    pub fn take_handler_rc(&self) -> std::rc::Rc<dyn Fn(Event)> {
+        self.handler.clone()
     }
 }

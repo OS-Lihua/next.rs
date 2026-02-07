@@ -15,13 +15,11 @@ pub fn attach_event_handlers(el: &web_sys::Element, element: &Element) {
 
     for handler in element.event_handlers() {
         let event_type = handler.event_type.clone();
-        let handler_ptr = &handler.handler as *const Box<dyn Fn(ReactEvent)>;
+        let callback = handler.take_handler_rc();
 
         let closure = Closure::wrap(Box::new(move |e: web_sys::Event| {
             let react_event = ReactEvent::new(e.type_());
-            unsafe {
-                (*handler_ptr)(react_event);
-            }
+            callback(react_event);
         }) as Box<dyn FnMut(web_sys::Event)>);
 
         event_target

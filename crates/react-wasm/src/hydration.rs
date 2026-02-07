@@ -131,20 +131,25 @@ fn hydrate_element(element: &Element, dom_node: &web_sys::Node) -> HydrationResu
 
     for handler in element.event_handlers() {
         let event_type = handler.event_type().to_string();
-        let handler_ptr = handler as *const react_rs_elements::events::EventHandler;
+        let event_id = crate::dom::next_event_id();
 
-        let closure = Closure::wrap(Box::new(move |e: web_sys::Event| {
-            let react_event = react_rs_elements::events::Event::new(e.type_());
-            unsafe {
-                (*handler_ptr).invoke(react_event);
-            }
-        }) as Box<dyn FnMut(web_sys::Event)>);
+        let callback = handler.take_handler_rc();
+
+        crate::dom::register_event_callback(
+            event_id,
+            Rc::new(move |wasm_event: crate::dom::WasmEvent| {
+                let react_event = react_rs_elements::events::Event::new(wasm_event.inner().type_());
+                callback(react_event);
+            }),
+        );
 
         dom_element
-            .add_event_listener_with_callback(&event_type, closure.as_ref().unchecked_ref())
+            .set_attribute("data-eid", &event_id.to_string())
             .map_err(HydrationError::from)?;
 
-        closure.forget();
+        let document = get_document();
+        crate::dom::ensure_delegated_listener(&document, &event_type)
+            .map_err(HydrationError::from)?;
     }
 
     let virtual_children = element.get_children();

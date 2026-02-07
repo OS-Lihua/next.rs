@@ -6,17 +6,17 @@ use wasm_bindgen::JsCast;
 use web_sys::Document;
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static EVENT_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-type EventCallback = Box<dyn Fn(WasmEvent)>;
+type EventCallback = Rc<dyn Fn(WasmEvent)>;
 
 thread_local! {
-    #[allow(clippy::type_complexity)]
     static EVENT_REGISTRY: RefCell<HashMap<usize, EventCallback>> = RefCell::new(HashMap::new());
+    static DELEGATED_TYPES: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
 }
 
 pub struct WasmEvent {
@@ -166,36 +166,74 @@ fn render_element(document: &Document, element: &Element) -> Result<web_sys::Nod
 
     for handler in element.event_handlers() {
         let event_type = handler.event_type().to_string();
-        let event_id = EVENT_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let event_id = next_event_id();
 
-        let handler_ptr = handler as *const react_rs_elements::events::EventHandler;
+        let callback = handler.take_handler_rc();
 
-        EVENT_REGISTRY.with(|registry| {
-            registry.borrow_mut().insert(
-                event_id,
-                Box::new(move |wasm_event: WasmEvent| {
-                    let react_event =
-                        react_rs_elements::events::Event::new(wasm_event.inner().type_());
-                    unsafe {
-                        (*handler_ptr).invoke(react_event);
-                    }
-                }),
-            );
-        });
+        register_event_callback(
+            event_id,
+            Rc::new(move |wasm_event: WasmEvent| {
+                let react_event = react_rs_elements::events::Event::new(wasm_event.inner().type_());
+                callback(react_event);
+            }),
+        );
 
-        let closure = Closure::wrap(Box::new(move |e: web_sys::Event| {
-            EVENT_REGISTRY.with(|registry| {
-                if let Some(callback) = registry.borrow().get(&event_id) {
-                    callback(WasmEvent::new(e));
-                }
-            });
-        }) as Box<dyn FnMut(web_sys::Event)>);
-
-        el.add_event_listener_with_callback(&event_type, closure.as_ref().unchecked_ref())?;
-        closure.forget();
+        el.set_attribute("data-eid", &event_id.to_string())?;
+        ensure_delegated_listener(document, &event_type)?;
     }
 
     Ok(el.into())
+}
+
+pub fn next_event_id() -> usize {
+    EVENT_ID_COUNTER.fetch_add(1, Ordering::SeqCst)
+}
+
+pub fn register_event_callback(event_id: usize, callback: EventCallback) {
+    EVENT_REGISTRY.with(|registry| {
+        registry.borrow_mut().insert(event_id, callback);
+    });
+}
+
+pub fn ensure_delegated_listener(document: &Document, event_type: &str) -> Result<(), JsValue> {
+    let already_registered = DELEGATED_TYPES.with(|types| {
+        let mut types = types.borrow_mut();
+        if types.contains(event_type) {
+            true
+        } else {
+            types.insert(event_type.to_string());
+            false
+        }
+    });
+
+    if already_registered {
+        return Ok(());
+    }
+
+    let closure = Closure::wrap(Box::new(move |e: web_sys::Event| {
+        let mut target = e
+            .target()
+            .and_then(|t| t.dyn_into::<web_sys::Element>().ok());
+
+        while let Some(el) = target {
+            if let Some(eid_str) = el.get_attribute("data-eid") {
+                if let Ok(eid) = eid_str.parse::<usize>() {
+                    let callback =
+                        EVENT_REGISTRY.with(|registry| registry.borrow().get(&eid).cloned());
+                    if let Some(cb) = callback {
+                        cb(WasmEvent::new(e));
+                        return;
+                    }
+                }
+            }
+            target = el.parent_element();
+        }
+    }) as Box<dyn FnMut(web_sys::Event)>);
+
+    document.add_event_listener_with_callback(event_type, closure.as_ref().unchecked_ref())?;
+    closure.forget();
+
+    Ok(())
 }
 
 pub fn mount(node: &Node, container_id: &str) -> Result<(), JsValue> {
@@ -214,7 +252,7 @@ pub fn mount(node: &Node, container_id: &str) -> Result<(), JsValue> {
 
 pub fn register_event_handler<F: Fn(WasmEvent) + 'static>(event_id: usize, handler: F) {
     EVENT_REGISTRY.with(|registry| {
-        registry.borrow_mut().insert(event_id, Box::new(handler));
+        registry.borrow_mut().insert(event_id, Rc::new(handler));
     });
 }
 
