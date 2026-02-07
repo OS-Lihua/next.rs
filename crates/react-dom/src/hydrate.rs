@@ -26,6 +26,7 @@ fn hydrate_node(node: &Node, dom_node: Option<&web_sys::Node>) {
                 }
             }
         }
+        Node::Conditional(_, _, _) | Node::ReactiveList(_) | Node::Head(_) => {}
     }
 }
 
