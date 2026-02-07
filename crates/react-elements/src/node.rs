@@ -1,5 +1,6 @@
 use crate::head::Head;
 use crate::reactive::ReactiveValue;
+use crate::suspense::{ErrorBoundaryData, SuspenseData};
 use crate::Element;
 use std::rc::Rc;
 
@@ -11,6 +12,8 @@ pub enum Node {
     Conditional(ReactiveValue<bool>, Box<Node>, Option<Box<Node>>),
     ReactiveList(Rc<dyn Fn() -> Vec<Node>>),
     Head(Head),
+    Suspense(SuspenseData),
+    ErrorBoundary(ErrorBoundaryData),
 }
 
 pub trait IntoNode {
