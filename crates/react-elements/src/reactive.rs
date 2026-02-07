@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use react_rs_core::signal::ReadSignal;
@@ -40,7 +39,7 @@ where
 
 pub enum ReactiveValue<T> {
     Static(T),
-    Dynamic(Rc<RefCell<T>>),
+    Dynamic(Rc<dyn Fn() -> T>),
 }
 
 impl<T: Clone> Clone for ReactiveValue<T> {
@@ -56,7 +55,7 @@ impl<T: Clone> ReactiveValue<T> {
     pub fn get(&self) -> T {
         match self {
             ReactiveValue::Static(v) => v.clone(),
-            ReactiveValue::Dynamic(v) => v.borrow().clone(),
+            ReactiveValue::Dynamic(f) => f(),
         }
     }
 }
@@ -83,17 +82,7 @@ where
     F: Fn(&T) -> String + 'static,
 {
     fn into_reactive_string(self) -> ReactiveValue<String> {
-        use react_rs_core::effect::create_effect;
-
-        let value = Rc::new(RefCell::new(self.get()));
-        let value_clone = value.clone();
-
-        create_effect(move || {
-            let new_value = self.get();
-            *value_clone.borrow_mut() = new_value;
-        });
-
-        ReactiveValue::Dynamic(value)
+        ReactiveValue::Dynamic(Rc::new(move || self.get()))
     }
 }
 
@@ -113,17 +102,7 @@ where
     F: Fn(&T) -> bool + 'static,
 {
     fn into_reactive_bool(self) -> ReactiveValue<bool> {
-        use react_rs_core::effect::create_effect;
-
-        let value = Rc::new(RefCell::new(self.get()));
-        let value_clone = value.clone();
-
-        create_effect(move || {
-            let new_value = self.get();
-            *value_clone.borrow_mut() = new_value;
-        });
-
-        ReactiveValue::Dynamic(value)
+        ReactiveValue::Dynamic(Rc::new(move || self.get()))
     }
 }
 
