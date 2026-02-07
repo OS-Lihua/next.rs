@@ -40,6 +40,7 @@ features = [
     "MouseEvent",
     "InputEvent",
     "HtmlInputElement",
+    "HtmlAnchorElement",
     "DomTokenList",
     "CssStyleDeclaration",
     "Response",
@@ -47,6 +48,8 @@ features = [
     "RequestInit",
     "RequestMode",
     "Request",
+    "History",
+    "Location",
 ]
 
 [dev-dependencies]

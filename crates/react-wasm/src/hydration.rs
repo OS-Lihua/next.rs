@@ -1,11 +1,11 @@
+use react_rs_elements::attributes::AttributeValue;
 use react_rs_elements::node::Node;
 use react_rs_elements::Element;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use web_sys::{Document, Element as WebElement};
 
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-static HYDRATION_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum HydrationError {
@@ -55,7 +55,21 @@ pub fn hydrate(node: &Node, container_id: &str) -> HydrationResult<()> {
 fn hydrate_node(virtual_node: &Node, dom_node: &web_sys::Node) -> HydrationResult<()> {
     match virtual_node {
         Node::Element(element) => hydrate_element(element, dom_node),
-        Node::Text(_) | Node::ReactiveText(_) => Ok(()),
+        Node::Text(_) => Ok(()),
+        Node::ReactiveText(reactive) => {
+            use react_rs_core::effect::create_effect;
+
+            if let Some(text_node) = dom_node.dyn_ref::<web_sys::Text>() {
+                let text_node_rc = Rc::new(text_node.clone());
+                let reactive = reactive.clone();
+
+                create_effect(move || {
+                    let value = reactive.get();
+                    text_node_rc.set_text_content(Some(&value));
+                });
+            }
+            Ok(())
+        }
         Node::Fragment(children) => {
             for (i, child) in children.iter().enumerate() {
                 if let Some(dom_child) = dom_node.child_nodes().get(i as u32) {
@@ -68,6 +82,8 @@ fn hydrate_node(virtual_node: &Node, dom_node: &web_sys::Node) -> HydrationResul
 }
 
 fn hydrate_element(element: &Element, dom_node: &web_sys::Node) -> HydrationResult<()> {
+    use react_rs_core::effect::create_effect;
+
     let dom_element: &WebElement =
         dom_node
             .dyn_ref()
@@ -84,21 +100,48 @@ fn hydrate_element(element: &Element, dom_node: &web_sys::Node) -> HydrationResu
         });
     }
 
+    for attr in element.attributes() {
+        match &attr.value {
+            AttributeValue::ReactiveString(reactive) => {
+                let el_rc = Rc::new(dom_element.clone());
+                let name_rc = Rc::new(attr.name.clone());
+                let reactive = reactive.clone();
+
+                create_effect(move || {
+                    let value = reactive.get();
+                    let _ = el_rc.set_attribute(&name_rc, &value);
+                });
+            }
+            AttributeValue::ReactiveBool(reactive) => {
+                let el_rc = Rc::new(dom_element.clone());
+                let name_rc = Rc::new(attr.name.clone());
+                let reactive = reactive.clone();
+
+                create_effect(move || {
+                    if reactive.get() {
+                        let _ = el_rc.set_attribute(&name_rc, "");
+                    } else {
+                        let _ = el_rc.remove_attribute(&name_rc);
+                    }
+                });
+            }
+            _ => {}
+        }
+    }
+
     for handler in element.event_handlers() {
         let event_type = handler.event_type().to_string();
-        let hydration_id = HYDRATION_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let handler_ptr = handler as *const react_rs_elements::events::EventHandler;
 
-        let closure = Closure::wrap(Box::new(move || {
-            web_sys::console::log_1(
-                &format!("Event {} triggered (id: {})", event_type, hydration_id).into(),
-            );
-        }) as Box<dyn FnMut()>);
+        let closure = Closure::wrap(Box::new(move |e: web_sys::Event| {
+            let react_event = react_rs_elements::events::Event::new(e.type_());
+            unsafe {
+                (*handler_ptr).invoke(react_event);
+            }
+        }) as Box<dyn FnMut(web_sys::Event)>);
 
         dom_element
-            .add_event_listener_with_callback(
-                handler.event_type(),
-                closure.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback(&event_type, closure.as_ref().unchecked_ref())
             .map_err(HydrationError::from)?;
 
         closure.forget();

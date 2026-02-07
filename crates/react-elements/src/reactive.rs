@@ -43,6 +43,15 @@ pub enum ReactiveValue<T> {
     Dynamic(Rc<RefCell<T>>),
 }
 
+impl<T: Clone> Clone for ReactiveValue<T> {
+    fn clone(&self) -> Self {
+        match self {
+            ReactiveValue::Static(v) => ReactiveValue::Static(v.clone()),
+            ReactiveValue::Dynamic(v) => ReactiveValue::Dynamic(v.clone()),
+        }
+    }
+}
+
 impl<T: Clone> ReactiveValue<T> {
     pub fn get(&self) -> T {
         match self {
