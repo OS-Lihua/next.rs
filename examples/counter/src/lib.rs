@@ -35,7 +35,7 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn main() {
-    react_rs_dom::mount_to_body(counter().into_node());
+    react_rs_wasm::mount(&counter().into_node(), "root").expect("Failed to mount counter");
 }
 
 #[cfg(not(target_arch = "wasm32"))]
