@@ -1,0 +1,30 @@
+[package]
+name = "wasm-demo"
+version = "0.1.0"
+edition = "2021"
+description = "Complete WASM demo showcasing SSR, hydration, reactivity, and routing"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
+[dependencies]
+react-rs-core = { path = "../../crates/react-core" }
+react-rs-elements = { path = "../../crates/react-elements" }
+react-rs-dom = { path = "../../crates/react-dom" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+react-rs-wasm = { path = "../../crates/react-wasm" }
+web-sys = { version = "0.3", features = ["console"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["full"] }
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
