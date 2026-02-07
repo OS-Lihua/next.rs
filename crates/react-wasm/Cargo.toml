@@ -14,9 +14,9 @@ description = "WASM runtime and hydration for react.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-react-rs-core = { version = "0.1.0", path = "../react-core" }
-react-rs-elements = { version = "0.1.0", path = "../react-elements" }
-next-rs-rsc = { version = "0.1.0", path = "../next-rsc" }
+react-rs-core = { version = "0.1.1", path = "../react-core" }
+react-rs-elements = { version = "0.1.1", path = "../react-elements" }
+next-rs-rsc = { version = "0.1.1", path = "../next-rsc" }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"

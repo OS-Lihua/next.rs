@@ -11,8 +11,8 @@ categories.workspace = true
 description = "DOM rendering and SSR for react.rs"
 
 [dependencies]
-react-rs-core = { version = "0.1.0", path = "../react-core" }
-react-rs-elements = { version = "0.1.0", path = "../react-elements" }
+react-rs-core = { version = "0.1.1", path = "../react-core" }
+react-rs-elements = { version = "0.1.1", path = "../react-elements" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
