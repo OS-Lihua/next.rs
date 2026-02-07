@@ -1,0 +1,13 @@
+[package]
+name = "next-rs-router"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "App Router for next.rs - file system based routing with nested layouts"
+
+[dependencies]
+react-rs-core = { path = "../react-core" }
+react-rs-elements = { path = "../react-elements" }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,15 @@
+[package]
+name = "todo-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+react-rs-core = { path = "../../crates/react-core" }
+react-rs-elements = { path = "../../crates/react-elements" }
+react-rs-dom = { path = "../../crates/react-dom" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
+[lib]
+crate-type = ["cdylib", "rlib"]

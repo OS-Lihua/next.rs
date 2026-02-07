@@ -1,0 +1,18 @@
+[package]
+name = "next-rs-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI for next.rs - Next.js reimplemented in Rust"
+
+[[bin]]
+name = "next-rs"
+path = "src/main.rs"
+
+[dependencies]
+next-rs-router = { path = "../next-router" }
+next-rs-server = { path = "../next-server" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+serde_json = "1"

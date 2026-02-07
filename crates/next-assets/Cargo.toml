@@ -1,0 +1,10 @@
+[package]
+name = "next-rs-assets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Image and font optimization for next.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

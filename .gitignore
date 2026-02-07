@@ -1,0 +1,44 @@
+# Rust build artifacts
+/target/
+**/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# WASM build outputs
+/pkg/
+**/pkg/
+
+# Test coverage
+*.profraw
+*.profdata
+coverage/
+lcov.info
+tarpaulin-report.html
+
+# Benchmark results
+criterion/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Editor backup files
+*.orig
+
+# Sisyphus agent files
+.sisyphus/

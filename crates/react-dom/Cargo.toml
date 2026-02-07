@@ -1,0 +1,33 @@
+[package]
+name = "react-rs-dom"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "DOM rendering for react.rs - Web platform support via WebAssembly"
+
+[dependencies]
+react-rs-core = { path = "../react-core" }
+react-rs-elements = { path = "../react-elements" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+    "console",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Text",
+    "Window",
+    "Event",
+    "MouseEvent",
+    "InputEvent",
+    "HtmlInputElement",
+    "EventTarget",
+] }
+js-sys = "0.3"
+
+[dev-dependencies]
+
+[features]
+default = []

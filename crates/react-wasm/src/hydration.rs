@@ -1,0 +1,172 @@
+use react_rs_elements::node::Node;
+use react_rs_elements::Element;
+use wasm_bindgen::prelude::*;
+use web_sys::{Document, Element as WebElement};
+
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static HYDRATION_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug)]
+pub enum HydrationError {
+    ContainerNotFound(String),
+    NodeMismatch { expected: String, found: String },
+    ChildCountMismatch { expected: usize, found: usize },
+    JsError(String),
+}
+
+impl From<JsValue> for HydrationError {
+    fn from(value: JsValue) -> Self {
+        HydrationError::JsError(format!("{:?}", value))
+    }
+}
+
+pub type HydrationResult<T> = Result<T, HydrationError>;
+
+fn get_document() -> Document {
+    web_sys::window()
+        .expect("no window")
+        .document()
+        .expect("no document")
+}
+
+pub fn hydrate(node: &Node, container_id: &str) -> HydrationResult<()> {
+    let document = get_document();
+    let container = document
+        .get_element_by_id(container_id)
+        .ok_or_else(|| HydrationError::ContainerNotFound(container_id.to_string()))?;
+
+    let children = container.child_nodes();
+
+    if children.length() == 0 {
+        return Err(HydrationError::ChildCountMismatch {
+            expected: 1,
+            found: 0,
+        });
+    }
+
+    if let Some(first_child) = children.get(0) {
+        hydrate_node(node, &first_child)?;
+    }
+
+    Ok(())
+}
+
+fn hydrate_node(virtual_node: &Node, dom_node: &web_sys::Node) -> HydrationResult<()> {
+    match virtual_node {
+        Node::Element(element) => hydrate_element(element, dom_node),
+        Node::Text(_) | Node::ReactiveText(_) => Ok(()),
+        Node::Fragment(children) => {
+            for (i, child) in children.iter().enumerate() {
+                if let Some(dom_child) = dom_node.child_nodes().get(i as u32) {
+                    hydrate_node(child, &dom_child)?;
+                }
+            }
+            Ok(())
+        }
+    }
+}
+
+fn hydrate_element(element: &Element, dom_node: &web_sys::Node) -> HydrationResult<()> {
+    let dom_element: &WebElement =
+        dom_node
+            .dyn_ref()
+            .ok_or_else(|| HydrationError::NodeMismatch {
+                expected: element.tag().to_string(),
+                found: "non-element".to_string(),
+            })?;
+
+    let dom_tag = dom_element.tag_name().to_lowercase();
+    if dom_tag != element.tag() {
+        return Err(HydrationError::NodeMismatch {
+            expected: element.tag().to_string(),
+            found: dom_tag,
+        });
+    }
+
+    for handler in element.event_handlers() {
+        let event_type = handler.event_type().to_string();
+        let hydration_id = HYDRATION_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
+
+        let closure = Closure::wrap(Box::new(move || {
+            web_sys::console::log_1(
+                &format!("Event {} triggered (id: {})", event_type, hydration_id).into(),
+            );
+        }) as Box<dyn FnMut()>);
+
+        dom_element
+            .add_event_listener_with_callback(
+                handler.event_type(),
+                closure.as_ref().unchecked_ref(),
+            )
+            .map_err(HydrationError::from)?;
+
+        closure.forget();
+    }
+
+    let virtual_children = element.get_children();
+    let dom_children = dom_node.child_nodes();
+
+    for (i, virtual_child) in virtual_children.iter().enumerate() {
+        if let Some(dom_child) = dom_children.get(i as u32) {
+            hydrate_node(virtual_child, &dom_child)?;
+        }
+    }
+
+    Ok(())
+}
+
+pub fn hydrate_client_components(container_id: &str) -> HydrationResult<Vec<String>> {
+    let document = get_document();
+    let container = document
+        .get_element_by_id(container_id)
+        .ok_or_else(|| HydrationError::ContainerNotFound(container_id.to_string()))?;
+
+    let client_elements = container
+        .query_selector_all("[data-client]")
+        .map_err(HydrationError::from)?;
+
+    let mut hydrated = Vec::new();
+
+    for i in 0..client_elements.length() {
+        if let Some(node) = client_elements.get(i) {
+            if let Some(el) = node.dyn_ref::<WebElement>() {
+                if let Some(component_id) = el.get_attribute("data-component-id") {
+                    hydrated.push(component_id);
+                }
+            }
+        }
+    }
+
+    Ok(hydrated)
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::*;
+
+    #[wasm_bindgen_test]
+    fn test_hydration_error_from_js() {
+        let js_err = JsValue::from_str("test error");
+        let err = HydrationError::from(js_err);
+        assert!(matches!(err, HydrationError::JsError(_)));
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hydration_error_types() {
+        let err = HydrationError::ContainerNotFound("test".to_string());
+        assert!(matches!(err, HydrationError::ContainerNotFound(_)));
+
+        let err = HydrationError::NodeMismatch {
+            expected: "div".to_string(),
+            found: "span".to_string(),
+        };
+        assert!(matches!(err, HydrationError::NodeMismatch { .. }));
+    }
+}

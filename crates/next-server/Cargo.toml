@@ -1,0 +1,24 @@
+[package]
+name = "next-rs-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "HTTP server for next.rs with SSR/SSG/ISR support"
+
+[dependencies]
+next-rs-router = { path = "../next-router" }
+next-rs-rsc = { path = "../next-rsc" }
+react-rs-dom = { path = "../react-dom" }
+react-rs-elements = { path = "../react-elements" }
+tokio = { version = "1", features = ["full"] }
+hyper = { version = "1", features = ["full"] }
+http-body-util = "0.1"
+hyper-util = { version = "0.1", features = ["full"] }
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures-core = "0.3"
+anyhow = "1"
+
+[dev-dependencies]
+tempfile = "3"

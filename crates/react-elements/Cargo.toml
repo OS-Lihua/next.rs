@@ -1,0 +1,11 @@
+[package]
+name = "react-rs-elements"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "HTML element API for react.rs with pure Rust method chaining"
+
+[dependencies]
+react-rs-core = { path = "../react-core" }
+
+[dev-dependencies]
