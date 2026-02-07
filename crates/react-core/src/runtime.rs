@@ -1,12 +1,13 @@
 use std::cell::RefCell;
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 thread_local! {
     pub static RUNTIME: RefCell<Runtime> = RefCell::new(Runtime::new());
 }
 
 type EffectId = usize;
-type EffectFn = Box<dyn Fn()>;
+type EffectFn = Rc<dyn Fn()>;
 
 pub struct Runtime {
     effects: Vec<Option<EffectFn>>,
@@ -31,7 +32,7 @@ impl Runtime {
 
     pub fn register_effect(&mut self, f: impl Fn() + 'static) -> EffectId {
         let id = self.effects.len();
-        self.effects.push(Some(Box::new(f)));
+        self.effects.push(Some(Rc::new(f)));
         id
     }
 
@@ -43,6 +44,10 @@ impl Runtime {
 
     pub fn get_effect(&self, id: EffectId) -> Option<&EffectFn> {
         self.effects.get(id).and_then(|e| e.as_ref())
+    }
+
+    pub fn clone_effect(&self, id: EffectId) -> Option<EffectFn> {
+        self.effects.get(id).and_then(|e| e.as_ref().map(Rc::clone))
     }
 
     pub fn schedule_effect(&mut self, id: EffectId) {

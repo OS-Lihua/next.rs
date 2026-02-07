@@ -11,14 +11,10 @@ where
 pub(crate) fn run_effect(id: usize) {
     RUNTIME.with(|rt| {
         let prev = rt.borrow_mut().set_current_effect(Some(id));
+        let effect_fn = rt.borrow().clone_effect(id);
 
-        let effect_ptr: Option<*const dyn Fn()> = rt
-            .borrow()
-            .get_effect(id)
-            .map(|e| e.as_ref() as *const dyn Fn());
-
-        if let Some(effect) = effect_ptr {
-            unsafe { (*effect)() };
+        if let Some(f) = effect_fn {
+            f();
         }
 
         rt.borrow_mut().set_current_effect(prev);

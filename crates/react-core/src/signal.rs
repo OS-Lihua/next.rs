@@ -98,15 +98,15 @@ impl<T> WriteSignal<T> {
     }
 
     fn notify_subscribers(&self) {
-        let subscribers: Vec<SubscriberId> = { self.inner.borrow().subscribers.clone() };
-
+        let inner = self.inner.borrow();
         let should_flush = RUNTIME.with(|rt| {
             let mut rt = rt.borrow_mut();
-            for subscriber_id in subscribers {
+            for &subscriber_id in &inner.subscribers {
                 rt.schedule_effect(subscriber_id);
             }
             !rt.is_batching()
         });
+        drop(inner);
 
         if should_flush {
             flush_effects();
