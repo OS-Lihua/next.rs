@@ -899,6 +899,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "next-rs-actions",
+ "next-rs-middleware",
  "next-rs-router",
  "next-rs-rsc",
  "react-rs-dom",

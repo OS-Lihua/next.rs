@@ -10,11 +10,14 @@ use next_rs_router::Router;
 use crate::api::{ApiRequest, ApiResponse, ApiRouteHandler};
 use crate::rsc_handler::RscHandler;
 use crate::ssr::{PageRegistry, SsrRenderer};
+use next_rs_middleware::{MiddlewareMatcher, MiddlewareResult, NextRequest, NextResponse};
 
 const RSC_PREFIX: &str = "/_rsc";
 const API_PREFIX: &str = "/api";
 const ACTION_PREFIX: &str = "/_action/";
 const WS_PREFIX: &str = "/ws/";
+
+type MiddlewareFn = Arc<dyn Fn(&NextRequest) -> MiddlewareResult + Send + Sync>;
 
 pub struct RequestHandler {
     router: Router,
@@ -26,6 +29,7 @@ pub struct RequestHandler {
     api_handler: ApiRouteHandler,
     action_registry: Arc<next_rs_actions::ActionRegistry>,
     ws_registry: Arc<crate::ws::WsRegistry>,
+    middlewares: Vec<(MiddlewareMatcher, MiddlewareFn)>,
 }
 
 impl RequestHandler {
@@ -44,6 +48,7 @@ impl RequestHandler {
             api_handler,
             action_registry,
             ws_registry,
+            middlewares: Vec::new(),
         }
     }
 
@@ -64,6 +69,28 @@ impl RequestHandler {
         self.renderer.set_dev_mode(dev);
     }
 
+    pub fn register_middleware(
+        &mut self,
+        matcher: MiddlewareMatcher,
+        handler: impl Fn(&NextRequest) -> MiddlewareResult + Send + Sync + 'static,
+    ) {
+        self.middlewares.push((matcher, Arc::new(handler)));
+    }
+
+    fn run_middlewares(&self, path: &str) -> Option<MiddlewareResult> {
+        let request = NextRequest::new("GET", path);
+        for (matcher, handler) in &self.middlewares {
+            if matcher.matches(path) {
+                let result = handler(&request);
+                match result {
+                    MiddlewareResult::Next => continue,
+                    other => return Some(other),
+                }
+            }
+        }
+        None
+    }
+
     pub async fn handle(
         &self,
         req: Request<hyper::body::Incoming>,
@@ -81,6 +108,34 @@ impl RequestHandler {
         if path == "/__dev_ws" {
             if let Some(mut rx) = reload_rx {
                 return self.handle_dev_ws(req, &mut rx).await;
+            }
+        }
+
+        if path.starts_with("/_next/image") {
+            return self.handle_image_request(req.uri()).await;
+        }
+
+        if let Some(mw_result) = self.run_middlewares(&path) {
+            match mw_result {
+                MiddlewareResult::Redirect(redirect) => {
+                    return Ok(Response::builder()
+                        .status(redirect.status)
+                        .header("Location", &redirect.url)
+                        .body(Full::new(Bytes::new()))
+                        .unwrap());
+                }
+                MiddlewareResult::Rewrite(new_path) => {
+                    return self.handle_html_request(&new_path).await;
+                }
+                MiddlewareResult::Response(resp) => {
+                    let mut builder = Response::builder().status(resp.status);
+                    for (k, v) in &resp.headers {
+                        builder = builder.header(k.as_str(), v.as_str());
+                    }
+                    let body = resp.body.unwrap_or_default();
+                    return Ok(builder.body(Full::new(Bytes::from(body))).unwrap());
+                }
+                MiddlewareResult::Next => {}
             }
         }
 
@@ -264,6 +319,53 @@ impl RequestHandler {
         }
 
         None
+    }
+
+    async fn handle_image_request(
+        &self,
+        uri: &hyper::Uri,
+    ) -> Result<Response<Full<Bytes>>, hyper::Error> {
+        let query = uri.query().unwrap_or("");
+        let params: std::collections::HashMap<&str, &str> = query
+            .split('&')
+            .filter_map(|pair| {
+                let mut parts = pair.splitn(2, '=');
+                Some((parts.next()?, parts.next().unwrap_or("")))
+            })
+            .collect();
+
+        let url = params.get("url").unwrap_or(&"");
+        let clean = url.trim_start_matches('/');
+
+        let candidates = [PathBuf::from("public").join(clean), PathBuf::from(clean)];
+
+        for candidate in &candidates {
+            if candidate.exists() && candidate.is_file() {
+                if let Ok(data) = fs::read(candidate) {
+                    let content_type = match candidate.extension().and_then(|e| e.to_str()) {
+                        Some("png") => "image/png",
+                        Some("jpg") | Some("jpeg") => "image/jpeg",
+                        Some("webp") => "image/webp",
+                        Some("avif") => "image/avif",
+                        Some("svg") => "image/svg+xml",
+                        Some("gif") => "image/gif",
+                        Some("ico") => "image/x-icon",
+                        _ => "application/octet-stream",
+                    };
+                    return Ok(Response::builder()
+                        .status(StatusCode::OK)
+                        .header("Content-Type", content_type)
+                        .header("Cache-Control", "public, max-age=31536000, immutable")
+                        .body(Full::new(Bytes::from(data)))
+                        .unwrap());
+                }
+            }
+        }
+
+        Ok(Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Full::new(Bytes::from("Image not found")))
+            .unwrap())
     }
 
     async fn handle_html_request(&self, path: &str) -> Result<Response<Full<Bytes>>, hyper::Error> {
