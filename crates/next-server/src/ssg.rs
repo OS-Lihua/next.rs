@@ -1,15 +1,19 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use next_rs_router::{LayoutResolver, Route, Router};
+use next_rs_router::Route;
+use next_rs_router::Router;
 
-use crate::SsrRenderer;
+use crate::ssr::{PageRegistry, SsrRenderer};
 
 pub struct StaticGenerator {
     router: Router,
+    #[allow(dead_code)]
     app_dir: PathBuf,
     output_dir: PathBuf,
     renderer: SsrRenderer,
+    registry: Arc<PageRegistry>,
 }
 
 pub struct GenerationResult {
@@ -25,13 +29,19 @@ pub struct GeneratedFile {
 }
 
 impl StaticGenerator {
-    pub fn new(router: Router, app_dir: PathBuf, output_dir: PathBuf) -> Self {
-        let renderer = SsrRenderer::new(app_dir.clone());
+    pub fn new(
+        router: Router,
+        app_dir: PathBuf,
+        output_dir: PathBuf,
+        registry: Arc<PageRegistry>,
+    ) -> Self {
+        let renderer = SsrRenderer::new();
         Self {
             router,
             app_dir,
             output_dir,
             renderer,
+            registry,
         }
     }
 
@@ -51,13 +61,12 @@ impl StaticGenerator {
             files: Vec::new(),
         };
 
-        let layout_resolver = LayoutResolver::new(&self.app_dir);
-
         for route in static_routes {
-            let layout_tree = layout_resolver.resolve(route);
-            let html = self
-                .renderer
-                .render(&layout_tree, &std::collections::HashMap::new());
+            let html = self.renderer.render(
+                &route.path,
+                &std::collections::HashMap::new(),
+                &self.registry,
+            );
 
             let file_path = self.route_to_file_path(&route.path);
             let full_path = self.output_dir.join(&file_path);
@@ -175,7 +184,8 @@ mod tests {
         let routes = scanner.scan();
         let router = Router::from_routes(routes);
 
-        let generator = StaticGenerator::new(router, app_dir, output_dir.clone());
+        let registry = Arc::new(PageRegistry::new());
+        let generator = StaticGenerator::new(router, app_dir, output_dir.clone(), registry);
         let result = generator.generate().unwrap();
 
         assert_eq!(result.pages_generated, 4);
@@ -192,7 +202,8 @@ mod tests {
         let app_dir = temp.path().join("app");
         let output_dir = temp.path().join("dist");
 
-        let generator = StaticGenerator::new(Router::new(), app_dir, output_dir);
+        let registry = Arc::new(PageRegistry::new());
+        let generator = StaticGenerator::new(Router::new(), app_dir, output_dir, registry);
 
         assert_eq!(
             generator.route_to_file_path("/"),

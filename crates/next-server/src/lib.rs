@@ -5,14 +5,18 @@ mod rsc_handler;
 mod ssg;
 mod ssr;
 mod streaming;
+pub mod ws;
 
 pub use api::{ApiRequest, ApiResponse, ApiRouteHandler};
 pub use handler::RequestHandler;
 pub use isr::{CacheEntry, IncrementalCache, IsrConfig};
 pub use rsc_handler::RscHandler;
 pub use ssg::{GeneratedFile, GenerationResult, StaticGenerator, StaticParams};
-pub use ssr::SsrRenderer;
+pub use ssr::{LayoutRenderFn, PageRegistry, PageRenderFn, SsrRenderer};
 pub use streaming::{HtmlStream, RscStream, RscStreamingRenderer, StreamingRenderer};
+
+pub use next_rs_actions::ActionRegistry;
+pub use ws::{WsConnection, WsMessage, WsReceiver, WsRegistry, WsSender};
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -41,15 +45,20 @@ impl ServerConfig {
 pub struct NextServer {
     config: ServerConfig,
     router: Router,
+    registry: Arc<PageRegistry>,
 }
 
 impl NextServer {
-    pub fn new(config: ServerConfig) -> Self {
+    pub fn new(config: ServerConfig, registry: PageRegistry) -> Self {
         let scanner = RouteScanner::new(&config.app_dir);
         let routes = scanner.scan();
         let router = Router::from_routes(routes);
 
-        Self { config, router }
+        Self {
+            config,
+            router,
+            registry: Arc::new(registry),
+        }
     }
 
     pub fn addr(&self) -> SocketAddr {
@@ -67,6 +76,7 @@ impl NextServer {
         let handler = Arc::new(RequestHandler::new(
             self.router,
             self.config.app_dir.clone(),
+            self.registry,
         ));
 
         loop {
@@ -93,9 +103,9 @@ pub struct DevServer {
 }
 
 impl DevServer {
-    pub fn new(config: ServerConfig) -> Self {
+    pub fn new(config: ServerConfig, registry: PageRegistry) -> Self {
         Self {
-            inner: NextServer::new(config),
+            inner: NextServer::new(config, registry),
         }
     }
 
@@ -137,7 +147,8 @@ mod tests {
     fn test_server_creation() {
         let temp = create_test_app();
         let config = ServerConfig::new(temp.path().join("app"), 3000);
-        let server = NextServer::new(config);
+        let registry = PageRegistry::new();
+        let server = NextServer::new(config, registry);
 
         assert_eq!(server.addr().port(), 3000);
         assert_eq!(server.router().routes.len(), 2);
@@ -147,7 +158,8 @@ mod tests {
     fn test_dev_server_creation() {
         let temp = create_test_app();
         let config = ServerConfig::new(temp.path().join("app"), 3001);
-        let server = DevServer::new(config);
+        let registry = PageRegistry::new();
+        let server = DevServer::new(config, registry);
 
         assert_eq!(server.addr().port(), 3001);
     }
