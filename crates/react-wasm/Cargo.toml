@@ -52,6 +52,11 @@ features = [
     "Request",
     "History",
     "Location",
+    "WebSocket",
+    "MessageEvent",
+    "CloseEvent",
+    "BinaryType",
+    "ErrorEvent",
 ]
 
 [dev-dependencies]
