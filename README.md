@@ -33,17 +33,17 @@ Next.js reimplemented in Rust, including a React-like UI framework with pure Rus
 
 ```bash
 # Create a new project
-next-rs create my-app
+next create my-app
 cd my-app
 
 # Start development server
-next-rs dev
+next dev
 
 # Build for production
-next-rs build
+next build
 
 # Start production server
-next-rs start
+next start
 ```
 
 ## React Example
@@ -69,7 +69,7 @@ fn counter() -> Element {
 ## Project Structure
 
 ```
-app/
+src/app/
 ├── layout.rs           # Root layout
 ├── page.rs             # Home page (/)
 ├── loading.rs          # Loading state
@@ -89,6 +89,18 @@ app/
     └── users/
         └── route.rs    # API route /api/users
 ```
+
+## File Conventions
+
+Every file follows a strict convention — one way to do things:
+
+| File | Export | Signature |
+|------|--------|-----------|
+| `page.rs` | `pub fn page()` | `-> impl IntoNode` |
+| `layout.rs` | `pub fn layout(children: Node)` | `-> impl IntoNode` |
+| `loading.rs` | `pub fn loading()` | `-> impl IntoNode` |
+| `error.rs` | `pub fn error(msg: String)` | `-> impl IntoNode` |
+| `route.rs` | HTTP handlers | `ApiRequest -> ApiResponse` |
 
 ## Crates
 

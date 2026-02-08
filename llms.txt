@@ -1,0 +1,208 @@
+# next.rs
+
+> Next.js reimplemented in Rust. Pure Rust API with method chaining. No macros. AI-first.
+
+## Core Concept
+
+next.rs is a full-stack Rust web framework with fine-grained reactivity (signals, not virtual DOM).
+Components are built with pure Rust function calls — no RSX/JSX macros, no custom DSL.
+File-system routing like Next.js App Router.
+
+## Quick Start
+
+```bash
+next create my-app
+cd my-app
+next dev
+```
+
+## Element API
+
+All HTML elements are functions returning `Element`. Chain methods to build UI:
+
+```rust
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+// Layout: div, span, p, main_el, section, article, aside, header, footer, nav
+// Text: h1, h2, h3, h4, h5, h6, strong, em, code, pre
+// Form: form, input, textarea, button, label, select, option
+// List: ul, ol, li
+// Table: table, thead, tbody, tr, th, td
+// Media: img, video, audio
+// Other: a, br, hr, html, head, title, body, meta, link, script, style
+```
+
+## Element Methods
+
+```rust
+// Attributes
+.class("flex items-center")    .id("my-id")
+.style("color: red")           .attr("data-x", "value")
+.href("/about")                .src("/image.png")
+.alt("description")            .type_("text")
+.name("field")                 .value("initial")
+.placeholder("Enter...")       .disabled(true)
+
+// Content
+.text("Static text")           .child(other_element)
+.children([elem1, elem2])
+
+// Events
+.on_click(|e| { /* click */ })
+.on_input(|e| { let val = e.value(); })
+.on_submit(|e| { e.prevent_default(); })
+.on_change(|e| { /* change */ })
+
+// Reactive
+.text_reactive(signal.map(|n| format!("Count: {}", n)))
+.class_reactive(signal.map(|a| if *a { "active" } else { "" }.to_string()))
+.value_reactive(signal.map(|s| s.clone()))
+.bind_value(read_signal, write_signal)
+.show_when(bool_signal)
+.show_when_else(bool_signal, fallback_element)
+```
+
+## Reactivity (Signals)
+
+```rust
+use react_rs_core::{create_signal, create_effect, create_memo};
+use react_rs_elements::reactive::SignalExt;
+
+let (count, set_count) = create_signal(0);
+count.get();                    // read
+set_count.set(5);               // replace
+set_count.update(|n| *n + 1);  // mutate
+
+create_effect(move || { println!("{}", count.get()); });
+
+let doubled = create_memo(move || count.get() * 2);
+let text = count.map(|n| format!("Count: {}", n));
+```
+
+## Context API
+
+```rust
+use react_rs_core::{provide_context, use_context};
+provide_context("theme", "dark".to_string());
+let theme: Option<String> = use_context("theme");
+```
+
+## Resource (Async Data)
+
+```rust
+use react_rs_core::{create_resource, ResourceState};
+let resource = create_resource::<Vec<String>>();
+resource.set_ready(vec!["item".into()]);
+match resource.read() {
+    ResourceState::Loading => { /* spinner */ },
+    ResourceState::Ready(data) => { /* show data */ },
+    ResourceState::Error(e) => { /* show error */ },
+}
+```
+
+## File Conventions
+
+```
+src/app/
+├── layout.rs       # pub fn layout(children: Node) -> impl IntoNode
+├── page.rs         # pub fn page() -> impl IntoNode
+├── about/
+│   └── page.rs     # /about
+├── blog/
+│   ├── layout.rs   # nested layout for /blog/*
+│   ├── page.rs     # /blog
+│   └── [slug]/
+│       └── page.rs # /blog/:slug (dynamic)
+└── api/
+    └── users/
+        └── route.rs # API route /api/users
+```
+
+## Pattern: Page Component
+
+```rust
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+pub fn page() -> impl IntoNode {
+    div()
+        .class("container mx-auto p-4")
+        .child(h1().class("text-2xl font-bold").text("My Page"))
+        .child(p().text("Content here"))
+}
+```
+
+## Pattern: Interactive Component
+
+```rust
+use react_rs_core::create_signal;
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+use react_rs_elements::reactive::SignalExt;
+
+pub fn counter() -> impl IntoNode {
+    let (count, set_count) = create_signal(0);
+    div()
+        .child(h1().text_reactive(count.map(|n| format!("Count: {}", n))))
+        .child(
+            button()
+                .class("px-4 py-2 bg-blue-500 text-white rounded")
+                .text("Increment")
+                .on_click(move |_| set_count.update(|n| *n + 1))
+        )
+}
+```
+
+## Pattern: Layout
+
+```rust
+use react_rs_elements::html::*;
+use react_rs_elements::node::{IntoNode, Node};
+
+pub fn layout(children: Node) -> impl IntoNode {
+    div()
+        .class("min-h-screen")
+        .child(header().child(nav().child(a().href("/").text("Home"))))
+        .child(main_el().class("p-4").child(children))
+        .child(footer().text("© 2025"))
+}
+```
+
+## Pattern: Form
+
+```rust
+use react_rs_core::create_signal;
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+pub fn contact_form() -> impl IntoNode {
+    let (name, set_name) = create_signal(String::new());
+    form()
+        .on_submit(move |e| {
+            e.prevent_default();
+            let value = name.get();
+        })
+        .child(input().type_("text").placeholder("Name").bind_value(name, set_name))
+        .child(button().type_("submit").text("Send"))
+}
+```
+
+## Anti-patterns
+
+- DO NOT use macros (view!, rsx!, html!) — use method chaining
+- DO NOT use virtual DOM — signals handle reactivity
+- DO NOT use `unsafe`
+- Use `main_el()` not `main()` for <main> element (conflicts with Rust's main fn)
+
+## CLI
+
+```bash
+next create <name>        # Create new project
+next dev                  # Dev server with hot-reload
+next build                # Production build (server + WASM)
+next start                # Production server
+next add page /path       # Scaffold page
+next add layout /path     # Scaffold layout
+next add component name   # Scaffold component
+```
