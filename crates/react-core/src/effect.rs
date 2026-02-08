@@ -1,6 +1,5 @@
-use crate::runtime::RUNTIME;
+use crate::runtime::{ScopeId, RUNTIME};
 
-/// Creates a side effect that re-runs when its signal dependencies change.
 pub fn create_effect<F>(f: F)
 where
     F: Fn() + 'static,
@@ -9,8 +8,26 @@ where
     run_effect(effect_id);
 }
 
+pub fn on_cleanup(f: impl FnOnce() + 'static) {
+    RUNTIME.with(|rt| {
+        rt.borrow_mut().add_cleanup(f);
+    });
+}
+
+pub fn create_scope() -> ScopeId {
+    RUNTIME.with(|rt| rt.borrow_mut().create_scope())
+}
+
+pub fn dispose_scope(scope_id: ScopeId) {
+    RUNTIME.with(|rt| rt.borrow_mut().dispose_scope(scope_id));
+}
+
 pub(crate) fn run_effect(id: usize) {
     RUNTIME.with(|rt| {
+        if rt.borrow().is_effect_disposed(id) {
+            return;
+        }
+        rt.borrow_mut().run_cleanups(id);
         let prev = rt.borrow_mut().set_current_effect(Some(id));
         let effect_fn = rt.borrow().clone_effect(id);
 
@@ -87,6 +104,90 @@ mod tests {
 
         set_count.set(2);
         assert_eq!(*effect_ran.borrow(), 3);
+    }
+
+    #[test]
+    fn test_effect_disposal() {
+        let (count, set_count) = create_signal(0);
+        let effect_ran = Rc::new(RefCell::new(0));
+        let effect_ran_clone = effect_ran.clone();
+
+        let scope = create_scope();
+        create_effect(move || {
+            let _ = count.get();
+            *effect_ran_clone.borrow_mut() += 1;
+        });
+
+        assert_eq!(*effect_ran.borrow(), 1);
+        set_count.set(1);
+        assert_eq!(*effect_ran.borrow(), 2);
+
+        dispose_scope(scope);
+
+        set_count.set(2);
+        assert_eq!(*effect_ran.borrow(), 2); // NOT re-triggered
+    }
+
+    #[test]
+    fn test_nested_scope_disposal() {
+        let (count, set_count) = create_signal(0);
+        let inner_ran = Rc::new(RefCell::new(0));
+        let inner_ran_clone = inner_ran.clone();
+
+        let outer = create_scope();
+        let _inner = create_scope();
+        create_effect(move || {
+            let _ = count.get();
+            *inner_ran_clone.borrow_mut() += 1;
+        });
+
+        assert_eq!(*inner_ran.borrow(), 1);
+        set_count.set(1);
+        assert_eq!(*inner_ran.borrow(), 2);
+
+        dispose_scope(outer); // disposing outer also disposes inner
+
+        set_count.set(2);
+        assert_eq!(*inner_ran.borrow(), 2); // NOT re-triggered
+    }
+
+    #[test]
+    fn test_on_cleanup_called_on_dispose() {
+        let cleanup_called = Rc::new(RefCell::new(false));
+        let cleanup_clone = cleanup_called.clone();
+
+        let scope = create_scope();
+        create_effect(move || {
+            let cc = cleanup_clone.clone();
+            on_cleanup(move || {
+                *cc.borrow_mut() = true;
+            });
+        });
+
+        assert!(!*cleanup_called.borrow());
+        dispose_scope(scope);
+        assert!(*cleanup_called.borrow());
+    }
+
+    #[test]
+    fn test_on_cleanup_called_on_rerun() {
+        let (count, set_count) = create_signal(0);
+        let cleanup_count = Rc::new(RefCell::new(0));
+        let cleanup_clone = cleanup_count.clone();
+
+        create_effect(move || {
+            let _ = count.get();
+            let cc = cleanup_clone.clone();
+            on_cleanup(move || {
+                *cc.borrow_mut() += 1;
+            });
+        });
+
+        assert_eq!(*cleanup_count.borrow(), 0);
+        set_count.set(1); // re-run triggers cleanup from first run
+        assert_eq!(*cleanup_count.borrow(), 1);
+        set_count.set(2);
+        assert_eq!(*cleanup_count.borrow(), 2);
     }
 
     #[test]

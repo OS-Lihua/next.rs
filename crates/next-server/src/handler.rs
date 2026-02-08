@@ -60,11 +60,29 @@ impl RequestHandler {
         &mut self.api_handler
     }
 
+    pub fn set_dev_mode(&mut self, dev: bool) {
+        self.renderer.set_dev_mode(dev);
+    }
+
     pub async fn handle(
         &self,
         req: Request<hyper::body::Incoming>,
     ) -> Result<Response<Full<Bytes>>, hyper::Error> {
+        self.handle_with_dev_ws(req, None).await
+    }
+
+    pub async fn handle_with_dev_ws(
+        &self,
+        req: Request<hyper::body::Incoming>,
+        reload_rx: Option<tokio::sync::broadcast::Receiver<String>>,
+    ) -> Result<Response<Full<Bytes>>, hyper::Error> {
         let path = req.uri().path().to_string();
+
+        if path == "/__dev_ws" {
+            if let Some(mut rx) = reload_rx {
+                return self.handle_dev_ws(req, &mut rx).await;
+            }
+        }
 
         if let Some(response) = self.try_serve_static(&path).await {
             return Ok(response);
@@ -100,6 +118,41 @@ impl RequestHandler {
         }
 
         self.handle_html_request(&path).await
+    }
+
+    async fn handle_dev_ws(
+        &self,
+        req: Request<hyper::body::Incoming>,
+        _reload_rx: &mut tokio::sync::broadcast::Receiver<String>,
+    ) -> Result<Response<Full<Bytes>>, hyper::Error> {
+        use hyper::header::{
+            CONNECTION, SEC_WEBSOCKET_ACCEPT, SEC_WEBSOCKET_KEY, SEC_WEBSOCKET_VERSION, UPGRADE,
+        };
+
+        let ws_key = req
+            .headers()
+            .get(SEC_WEBSOCKET_KEY)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_string();
+
+        if ws_key.is_empty() {
+            return Ok(Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Full::new(Bytes::from("Missing WebSocket key")))
+                .unwrap());
+        }
+
+        let accept_key = crate::ws::compute_accept_key(&ws_key);
+
+        Ok(Response::builder()
+            .status(StatusCode::SWITCHING_PROTOCOLS)
+            .header(UPGRADE, "websocket")
+            .header(CONNECTION, "Upgrade")
+            .header(SEC_WEBSOCKET_ACCEPT, accept_key)
+            .header(SEC_WEBSOCKET_VERSION, "13")
+            .body(Full::new(Bytes::new()))
+            .unwrap())
     }
 
     async fn handle_action_request(

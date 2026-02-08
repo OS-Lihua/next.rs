@@ -100,12 +100,15 @@ impl NextServer {
 
 pub struct DevServer {
     inner: NextServer,
+    reload_tx: tokio::sync::broadcast::Sender<String>,
 }
 
 impl DevServer {
     pub fn new(config: ServerConfig, registry: PageRegistry) -> Self {
+        let (reload_tx, _) = tokio::sync::broadcast::channel(16);
         Self {
             inner: NextServer::new(config, registry),
+            reload_tx,
         }
     }
 
@@ -117,9 +120,44 @@ impl DevServer {
         self.inner.router()
     }
 
+    pub fn reload_sender(&self) -> tokio::sync::broadcast::Sender<String> {
+        self.reload_tx.clone()
+    }
+
     pub async fn run(self) -> anyhow::Result<()> {
         println!("Development server running at http://{}", self.addr());
-        self.inner.run().await
+
+        let addr = self.addr();
+        let listener = TcpListener::bind(addr).await?;
+
+        let handler = Arc::new(RequestHandler::new(
+            self.inner.router,
+            self.inner.config.app_dir.clone(),
+            self.inner.registry,
+        ));
+
+        let reload_tx = self.reload_tx;
+
+        loop {
+            let (stream, _) = listener.accept().await?;
+            let io = TokioIo::new(stream);
+            let handler = handler.clone();
+            let reload_rx = reload_tx.subscribe();
+
+            tokio::spawn(async move {
+                let service = service_fn(move |req| {
+                    let handler = handler.clone();
+                    let reload_rx = reload_rx.resubscribe();
+                    async move { handler.handle_with_dev_ws(req, Some(reload_rx)).await }
+                });
+
+                if let Err(e) = http1::Builder::new().serve_connection(io, service).await {
+                    if !e.to_string().contains("connection closed") {
+                        eprintln!("Connection error: {}", e);
+                    }
+                }
+            });
+        }
     }
 }
 

@@ -56,19 +56,26 @@ impl Default for PageRegistry {
 
 pub struct SsrRenderer {
     package_name: String,
+    dev_mode: bool,
 }
 
 impl SsrRenderer {
     pub fn new() -> Self {
         Self {
             package_name: "app".to_string(),
+            dev_mode: false,
         }
     }
 
     pub fn with_package_name(name: impl Into<String>) -> Self {
         Self {
             package_name: name.into(),
+            dev_mode: false,
         }
+    }
+
+    pub fn set_dev_mode(&mut self, dev: bool) {
+        self.dev_mode = dev;
     }
 
     pub fn render(
@@ -95,6 +102,11 @@ impl SsrRenderer {
         let body_html = render_to_string(&content).html;
         let params_json = serde_json::to_string(params).unwrap_or_else(|_| "{}".to_string());
         let pkg_name = &self.package_name;
+        let dev_script = if self.dev_mode {
+            r#"<script>(function(){var ws=new WebSocket('ws://'+location.host+'/__dev_ws');ws.onmessage=function(e){if(e.data==='reload')location.reload()};ws.onclose=function(){setTimeout(function(){location.reload()},1000)}})()</script>"#
+        } else {
+            ""
+        };
 
         format!(
             r#"<!DOCTYPE html>
@@ -108,6 +120,7 @@ impl SsrRenderer {
 </head>
 <body>
     <div id="__next">{body}</div>
+    {dev_script}
     <script type="module">
         import init from '/pkg/{pkg}.js';
         init().catch(err => console.error('WASM load failed:', err));
@@ -117,6 +130,7 @@ impl SsrRenderer {
             route = route_path,
             params = params_json,
             body = body_html,
+            dev_script = dev_script,
             pkg = pkg_name,
         )
     }

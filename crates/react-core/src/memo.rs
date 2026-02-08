@@ -34,11 +34,7 @@ where
 
     create_effect(move || {
         let new_value = f();
-        write.update(|current| {
-            if *current != new_value {
-                *current = new_value;
-            }
-        });
+        write.set_if_changed(new_value);
     });
 
     Memo { read }
@@ -128,5 +124,26 @@ mod tests {
         assert_eq!(count.get(), 3);
         assert_eq!(doubled.get(), 6);
         assert_eq!(quadrupled.get(), 12);
+    }
+
+    #[test]
+    fn test_memo_does_not_notify_when_unchanged() {
+        let (count, set_count) = create_signal(1);
+        let is_even = create_memo(move || count.get() % 2 == 0);
+
+        let downstream_runs = Rc::new(RefCell::new(0usize));
+        let downstream_clone = downstream_runs.clone();
+        crate::effect::create_effect(move || {
+            let _ = is_even.get();
+            *downstream_clone.borrow_mut() += 1;
+        });
+
+        assert_eq!(*downstream_runs.borrow(), 1);
+
+        set_count.set(3); // 3 % 2 != 0, is_even stays false
+        assert_eq!(*downstream_runs.borrow(), 1);
+
+        set_count.set(4); // 4 % 2 == 0, is_even changes to true
+        assert_eq!(*downstream_runs.borrow(), 2);
     }
 }

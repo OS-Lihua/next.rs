@@ -70,10 +70,14 @@ impl<T: Clone> ReadSignal<T> {
 
     fn track(&self) {
         RUNTIME.with(|rt| {
-            if let Some(effect_id) = rt.borrow().current_effect() {
-                let mut inner = self.inner.borrow_mut();
-                if !inner.subscribers.contains(&effect_id) {
-                    inner.subscribers.push(effect_id);
+            let rt_ref = rt.borrow();
+            if let Some(effect_id) = rt_ref.current_effect() {
+                if !rt_ref.is_effect_disposed(effect_id) {
+                    drop(rt_ref);
+                    let mut inner = self.inner.borrow_mut();
+                    if !inner.subscribers.contains(&effect_id) {
+                        inner.subscribers.push(effect_id);
+                    }
                 }
             }
         });
@@ -100,12 +104,27 @@ impl<T> WriteSignal<T> {
         self.notify_subscribers();
     }
 
+    pub fn set_if_changed(&self, value: T)
+    where
+        T: PartialEq,
+    {
+        let changed = {
+            let inner = self.inner.borrow();
+            inner.value != value
+        };
+        if changed {
+            self.set(value);
+        }
+    }
+
     fn notify_subscribers(&self) {
         let inner = self.inner.borrow();
         let should_flush = RUNTIME.with(|rt| {
             let mut rt = rt.borrow_mut();
             for &subscriber_id in &inner.subscribers {
-                rt.schedule_effect(subscriber_id);
+                if !rt.is_effect_disposed(subscriber_id) {
+                    rt.schedule_effect(subscriber_id);
+                }
             }
             !rt.is_batching()
         });

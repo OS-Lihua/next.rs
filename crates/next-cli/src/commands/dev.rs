@@ -21,6 +21,7 @@ pub async fn run_dev_server(port: u16) -> Result<()> {
     let config = ServerConfig::new(&app_dir, port);
     let registry = PageRegistry::new();
     let server = DevServer::new(config, registry);
+    let reload_tx = server.reload_sender();
 
     let routes = server.router().routes.clone();
     println!("\nFound {} routes:", routes.len());
@@ -94,7 +95,8 @@ pub async fn run_dev_server(port: u16) -> Result<()> {
                         Ok(s) if s.success() => {
                             compile_tailwind();
                             let _ = compile_wasm_dev();
-                            println!("✓ Build successful. Reload the browser to see changes.\n");
+                            let _ = reload_tx.send("reload".to_string());
+                            println!("✓ Build successful. Browser will reload.\n");
                         }
                         Ok(_) => {
                             println!("✗ Build failed. Fix errors and save again.\n");

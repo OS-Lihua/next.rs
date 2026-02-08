@@ -1,130 +1,142 @@
 # next.rs
 
+> The AI-native Rust web framework. Pure Rust API. Zero macros. Designed for AI code generation.
+
 [![CI](https://github.com/OS-Lihua/next.rs/actions/workflows/ci.yml/badge.svg)](https://github.com/OS-Lihua/next.rs/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/OS-Lihua/next.rs/graph/badge.svg)](https://codecov.io/gh/OS-Lihua/next.rs)
 [![Crates.io](https://img.shields.io/crates/v/react-rs-core.svg)](https://crates.io/crates/react-rs-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Next.js reimplemented in Rust, including a React-like UI framework with pure Rust API. Zero unsafe code. All 11 crates published on [crates.io](https://crates.io/search?q=react-rs).
+## Why next.rs?
 
-## Features
+next.rs is the first web framework designed for AI to write code in. While other Rust frameworks use macro DSLs that LLMs struggle with, next.rs uses pure method chaining — the pattern AI generates most reliably.
 
-### React Core (react-rs)
-- Pure Rust API with method chaining (no RSX/JSX macros)
-- Fine-grained reactivity with Signals, Effects, and Memos
-- Context API for state sharing
-- Server-side rendering (SSR)
-- WASM runtime with client-side hydration
-- Event delegation (zero memory leaks)
-
-### Next.js Features (next-rs)
-- File-system based routing (App Router)
-- `Link` component and `use_router` / `use_pathname` / `use_params` hooks
-- Nested layouts with loading/error boundaries
-- Static Site Generation (SSG)
-- Incremental Static Regeneration (ISR)
-- HTTP Streaming with Suspense
-- React Server Components with `use_client!` / `use_server!` directives
-- Server Actions
-- Middleware
-- Image and Font optimization
-
-## Quick Start
-
-```bash
-# Create a new project
-next create my-app
-cd my-app
-
-# Start development server
-next dev
-
-# Build for production
-next build
-
-# Start production server
-next start
-```
-
-## React Example
+- **Zero macros** — Pure Rust function calls and method chaining. No `view!{}`, no `rsx!{}`, no `html!{}`
+- **AI-friendly conventions** — One file, one function, one signature. No ambiguity
+- **Full-stack Rust** — SSR on the server, WASM hydration in the browser, one language everywhere
+- **Fine-grained reactivity** — Signals, Effects, Memos. Direct DOM updates, no Virtual DOM overhead
 
 ```rust
 use react_rs_core::create_signal;
 use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+use react_rs_elements::SignalExt;
 
-fn counter() -> Element {
+pub fn page() -> impl IntoNode {
     let (count, set_count) = create_signal(0);
-    
+
     div()
-        .class("counter")
-        .child(h1().text_reactive(count.map(|n| format!("Count: {}", n))))
+        .class("container")
+        .child(h1().text("Welcome to next.rs"))
         .child(
             button()
-                .text("Increment")
-                .on_click(move |_| set_count.update(|n| *n + 1))
+                .text_reactive(count.map(|n| format!("Count: {}", n)))
+                .on_click(move |_| { set_count.update(|n| *n += 1); })
         )
 }
 ```
+
+## Quick Start
+
+```bash
+next create my-app
+cd my-app
+next dev
+```
+
+`next create` generates a fully working SSR + WASM hydration project. Interactive components (signals, events) work in the browser without configuration.
+
+## Features
+
+### React Core (react-rs)
+- Pure Rust API with method chaining (no macros)
+- Fine-grained reactivity: Signals, Effects, Memos
+- Scope-based effect disposal (no memory leaks)
+- Context API for state sharing
+- Server-side rendering (SSR)
+- WASM runtime with client-side hydration
+- Event delegation
+
+### Next.js Features (next-rs)
+- File-system based routing (App Router)
+- `Link` component and router hooks (`use_router`, `use_pathname`, `use_params`)
+- Nested layouts
+- Server Actions (register + async execute)
+- Tailwind CSS integration
+- Static file serving
+- WebSocket support
+- Dev server with auto browser refresh
+
+### CLI
+- `next create` — Project scaffolding with SSR + hydration out of the box
+- `next dev` — Dev server with file watching and auto browser refresh
+- `next build` — Production build (server binary + WASM)
+- `next start` — Production server
+- `next add` — Scaffold pages, layouts, components
+- `next check --json` — Project validation with machine-readable output
+
+### AI-Native
+- `llms.txt` — AI context file so LLMs generate correct next.rs code
+- `next check --json` — Structured diagnostics for AI agents
+- Zero-macro API — The pattern LLMs generate most reliably
+- Deterministic file conventions — No ambiguity for code generation
 
 ## Project Structure
 
 ```
 src/app/
-├── layout.rs           # Root layout
-├── page.rs             # Home page (/)
-├── loading.rs          # Loading state
-├── error.rs            # Error boundary
-├── not-found.rs        # 404 page
-│
+├── layout.rs       # pub fn layout(children: Node) -> impl IntoNode
+├── page.rs         # pub fn page() -> impl IntoNode
 ├── about/
-│   └── page.rs         # /about
-│
+│   └── page.rs     # /about
 ├── blog/
-│   ├── layout.rs       # Blog layout
-│   ├── page.rs         # /blog
+│   ├── layout.rs   # Blog layout
+│   ├── page.rs     # /blog
 │   └── [slug]/
-│       └── page.rs     # /blog/:slug (dynamic route)
-│
+│       └── page.rs # /blog/:slug (dynamic route)
 └── api/
     └── users/
-        └── route.rs    # API route /api/users
+        └── route.rs # API route /api/users
 ```
 
 ## File Conventions
-
-Every file follows a strict convention — one way to do things:
 
 | File | Export | Signature |
 |------|--------|-----------|
 | `page.rs` | `pub fn page()` | `-> impl IntoNode` |
 | `layout.rs` | `pub fn layout(children: Node)` | `-> impl IntoNode` |
-| `loading.rs` | `pub fn loading()` | `-> impl IntoNode` |
-| `error.rs` | `pub fn error(msg: String)` | `-> impl IntoNode` |
 | `route.rs` | HTTP handlers | `ApiRequest -> ApiResponse` |
 
 ## Crates
 
 | Crate | Description |
 |-------|-------------|
-| `react-rs-core` | Signal/Effect/Memo/Context reactivity system |
-| `react-rs-elements` | Pure Rust element API (div, span, etc.) |
+| `react-rs-core` | Signals, Effects, Memos, Context, Scopes |
+| `react-rs-elements` | Pure Rust HTML element API |
 | `react-rs-dom` | Server-side rendering |
 | `react-rs-wasm` | WASM runtime, hydration, event delegation |
 | `next-rs-router` | File-system routing, Link component, hooks |
-| `next-rs-server` | HTTP server with SSR/SSG/ISR |
-| `next-rs-rsc` | React Server Components, use_client!/use_server! |
+| `next-rs-server` | HTTP server with SSR, WebSocket, static files |
 | `next-rs-actions` | Server Actions |
-| `next-rs-middleware` | Request middleware |
-| `next-rs-assets` | Image/Font optimization |
+| `next-rs-rsc` | Server component rendering |
+| `next-rs-middleware` | Request middleware (path matching) |
+| `next-rs-assets` | Image/Font configuration |
 | `next-rs-cli` | CLI tool |
 
 ## Examples
 
-- `examples/hello-world` - Basic hello world
-- `examples/counter` - Reactive counter with signals
-- `examples/todo-app` - Todo application
-- `examples/blog` - Blog with App Router
-- `examples/wasm-demo` - Full SSR + WASM hydration demo with routing
+- `examples/counter` — Reactive counter with signals
+- `examples/todo-app` — Todo application with list rendering
+- `examples/wasm-demo` — Full SSR + WASM hydration demo
+
+## Roadmap
+
+- [ ] Incremental Static Regeneration (ISR)
+- [ ] HTTP Streaming with Suspense boundaries
+- [ ] Middleware pipeline integration into server handler
+- [ ] Image optimization endpoint (`/_next/image`)
+- [ ] AI Context Protocol (`.next-context.json`)
+- [ ] Project templates (`next create --template blog`)
+- [ ] AI Example Gallery
 
 ## Benchmarks
 
@@ -138,8 +150,6 @@ effect_create             16.8 ns
 memo_get                  2.1 ns
 deep_chain_3_memos        32 ns
 ```
-
-Run with: `cargo bench -p react-rs-core`
 
 ## License
 

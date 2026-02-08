@@ -148,7 +148,7 @@ pub async fn handle_ws_upgrade(
         .unwrap())
 }
 
-fn compute_accept_key(key: &str) -> String {
+pub fn compute_accept_key(key: &str) -> String {
     use sha1::{Digest, Sha1};
     let mut hasher = Sha1::new();
     hasher.update(key.as_bytes());
