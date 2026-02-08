@@ -19,7 +19,8 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]
 pub fn main() {
-    react_rs_dom::mount_to_body(app().into_node());
+    let node = app().into_node();
+    let _ = react_rs_wasm::mount(&node, "app");
 }
 
 #[cfg(not(target_arch = "wasm32"))]

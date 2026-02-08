@@ -9,6 +9,7 @@ react-rs-elements = { path = "../../crates/react-elements" }
 react-rs-dom = { path = "../../crates/react-dom" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+react-rs-wasm = { path = "../../crates/react-wasm" }
 wasm-bindgen = "0.2"
 
 [lib]
