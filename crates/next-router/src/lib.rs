@@ -1,4 +1,5 @@
 mod boundary;
+pub mod codegen;
 mod hooks;
 mod layout;
 mod link;
@@ -9,6 +10,7 @@ mod segment;
 pub use boundary::{
     BoundaryResolver, BoundaryStack, ErrorBoundary, LoadingBoundary, NotFoundBoundary,
 };
+pub use codegen::RouteCodegen;
 pub use hooks::{use_params, use_pathname, use_router, use_search_params, RouterState};
 pub use layout::{LayoutResolver, RouteMetadata};
 pub use link::{link, Link};
