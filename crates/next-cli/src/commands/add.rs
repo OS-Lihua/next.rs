@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
 
-pub async fn add_page(path: &str) -> Result<()> {
+pub async fn add_page(path: &str, interactive: bool) -> Result<()> {
     let clean_path = path.trim_start_matches('/');
     let file_path = if clean_path.is_empty() {
         PathBuf::from("src/app/page.rs")
@@ -29,8 +29,31 @@ pub async fn add_page(path: &str) -> Result<()> {
         &page_name
     };
 
-    let content = format!(
-        r#"use react_rs_elements::html::*;
+    let content = if interactive {
+        format!(
+            r#"use react_rs_core::create_signal;
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+use react_rs_elements::SignalExt;
+
+pub fn page() -> impl IntoNode {{
+    let (count, set_count) = create_signal(0);
+
+    div()
+        .child(h1().text("{title}"))
+        .child(
+            button()
+                .class("px-4 py-2 bg-blue-500 text-white rounded")
+                .text_reactive(count.map(|n| format!("Count: {{}}", n)))
+                .on_click(move |_| {{ set_count.update(|n| *n += 1); }})
+        )
+}}
+"#,
+            title = capitalize(page_name),
+        )
+    } else {
+        format!(
+            r#"use react_rs_elements::html::*;
 use react_rs_elements::node::IntoNode;
 
 pub fn page() -> impl IntoNode {{
@@ -39,9 +62,10 @@ pub fn page() -> impl IntoNode {{
         .child(p().text("Edit {path}"))
 }}
 "#,
-        title = capitalize(page_name),
-        path = file_path.display(),
-    );
+            title = capitalize(page_name),
+            path = file_path.display(),
+        )
+    };
 
     fs::write(&file_path, content).context("Failed to write page file")?;
     println!("✓ Created {}", file_path.display());
@@ -78,7 +102,7 @@ pub fn layout(children: Node) -> impl IntoNode {
     Ok(())
 }
 
-pub async fn add_component(name: &str) -> Result<()> {
+pub async fn add_component(name: &str, interactive: bool) -> Result<()> {
     let file_path = PathBuf::from(format!("src/components/{}.rs", name));
 
     if file_path.exists() {
@@ -89,8 +113,32 @@ pub async fn add_component(name: &str) -> Result<()> {
         fs::create_dir_all(parent).context("Failed to create directories")?;
     }
 
-    let content = format!(
-        r#"use react_rs_elements::html::*;
+    let content = if interactive {
+        format!(
+            r#"use react_rs_core::create_signal;
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+use react_rs_elements::SignalExt;
+
+pub fn {name}() -> impl IntoNode {{
+    let (value, set_value) = create_signal(String::new());
+
+    div()
+        .class("{name}")
+        .child(
+            input()
+                .type_("text")
+                .placeholder("Type here...")
+                .bind_value(value.clone(), set_value)
+        )
+        .child(p().text_reactive(value.map(|v| format!("Value: {{}}", v))))
+}}
+"#,
+            name = name,
+        )
+    } else {
+        format!(
+            r#"use react_rs_elements::html::*;
 use react_rs_elements::node::IntoNode;
 
 pub fn {name}() -> impl IntoNode {{
@@ -99,8 +147,9 @@ pub fn {name}() -> impl IntoNode {{
         .child(p().text("{name} component"))
 }}
 "#,
-        name = name,
-    );
+            name = name,
+        )
+    };
 
     fs::write(&file_path, content).context("Failed to write component file")?;
     println!("✓ Created {}", file_path.display());

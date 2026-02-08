@@ -1,12 +1,19 @@
 # next.rs
 
-> Next.js reimplemented in Rust. Pure Rust API with method chaining. No macros. AI-first.
+> The AI-native Rust web framework. Designed for LLM code generation. Zero macros. Pure method chaining.
 
 ## Core Concept
 
-next.rs is a full-stack Rust web framework with fine-grained reactivity (signals, not virtual DOM).
-Components are built with pure Rust function calls — no RSX/JSX macros, no custom DSL.
-File-system routing like Next.js App Router.
+next.rs is the first web framework designed for AI to write code in.
+Pure Rust function calls with method chaining — the pattern LLMs generate most reliably.
+Fine-grained reactivity (signals, not virtual DOM). File-system routing. SSR + WASM hydration.
+
+## AI Integration
+
+- `llms.txt` — This file. Read it to generate correct next.rs code.
+- `next check --json` — Structured diagnostics with fix suggestions. AI agents can parse and self-correct.
+- `next context` — Generates `.next-context.json` describing project routes and components.
+- `next create --template blog` — Pre-built templates: `default`, `blog`, `dashboard`.
 
 ## Quick Start
 
@@ -71,7 +78,7 @@ use react_rs_elements::node::IntoNode;
 ## Reactivity (Signals)
 
 ```rust
-use react_rs_core::{create_signal, create_effect, create_memo};
+use react_rs_core::{create_signal, create_effect, create_memo, create_scope, dispose_scope, on_cleanup};
 use react_rs_elements::SignalExt;
 
 let (count, set_count) = create_signal(0);
@@ -83,6 +90,27 @@ create_effect(move || { println!("{}", count.get()); });
 
 let doubled = create_memo(move || count.get() * 2);
 let text = count.map(|n| format!("Count: {}", n));
+
+// Scope-based disposal (prevents memory leaks)
+let scope = create_scope();
+create_effect(move || { /* tracked effect */ });
+dispose_scope(scope); // cleans up all effects in scope
+
+// Cleanup callbacks
+create_effect(move || {
+    on_cleanup(|| { /* runs before re-run or on dispose */ });
+});
+```
+
+## Keyed Lists
+
+```rust
+use react_rs_elements::node::each_keyed;
+
+let (items, set_items) = create_signal(vec![("a", "Alice"), ("b", "Bob")]);
+each_keyed(items, |(id, _)| id.to_string(), |(_, name), _i| {
+    li().text(*name).into_node()
+})
 ```
 
 ## Context API
@@ -205,11 +233,17 @@ pub fn contact_form() -> impl IntoNode {
 ## CLI
 
 ```bash
-next create <name>        # Create new project
-next dev                  # Dev server with hot-reload
-next build                # Production build (server + WASM)
-next start                # Production server
-next add page /path       # Scaffold page
-next add layout /path     # Scaffold layout
-next add component name   # Scaffold component
+next create <name>                    # Create new project (default template)
+next create <name> --template blog    # Create with blog template
+next create <name> --template dashboard  # Create with dashboard template
+next dev                              # Dev server with auto browser refresh
+next build                            # Production build (server + WASM)
+next start                            # Production server
+next add page /path                   # Scaffold page
+next add page /path --interactive     # Scaffold page with signal pattern
+next add layout /path                 # Scaffold layout
+next add component name               # Scaffold component
+next add component name --interactive # Component with signal pattern
+next check --json                     # Structured diagnostics for AI agents
+next context                          # Generate .next-context.json
 ```

@@ -2,14 +2,17 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 
-pub async fn create_project(name: &str) -> Result<()> {
+pub async fn create_project(name: &str, template: &str) -> Result<()> {
     let project_dir = Path::new(name);
 
     if project_dir.exists() {
         anyhow::bail!("Directory '{}' already exists", name);
     }
 
-    println!("Creating next.rs project: {}", name);
+    println!(
+        "Creating next.rs project: {} (template: {})",
+        name, template
+    );
 
     fs::create_dir_all(project_dir.join("src/app"))
         .context("Failed to create project directories")?;
@@ -21,10 +24,15 @@ pub async fn create_project(name: &str) -> Result<()> {
     create_lib_rs(project_dir)?;
     create_main_rs(project_dir, name)?;
     create_root_layout(project_dir)?;
-    create_home_page(project_dir)?;
     create_gitignore(project_dir)?;
     create_tailwind_config(project_dir)?;
     create_input_css(project_dir)?;
+
+    match template {
+        "blog" => create_blog_template(project_dir)?,
+        "dashboard" => create_dashboard_template(project_dir)?,
+        _ => create_home_page(project_dir)?,
+    }
 
     println!("\n✓ Project created successfully!");
     println!("\nNext steps:");
@@ -270,5 +278,158 @@ module.exports = {
 fn create_input_css(project_dir: &Path) -> Result<()> {
     let content = "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n";
     fs::write(project_dir.join("input.css"), content).context("Failed to write input.css")?;
+    Ok(())
+}
+
+fn create_blog_template(project_dir: &Path) -> Result<()> {
+    let home = r#"use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+pub fn page() -> impl IntoNode {
+    div()
+        .class("container mx-auto p-8")
+        .child(h1().class("text-3xl font-bold mb-8").text("My Blog"))
+        .child(
+            div().class("space-y-6")
+                .child(article_card("Getting Started with next.rs", "Learn how to build web apps with Rust.", "/blog/getting-started"))
+                .child(article_card("Signals and Reactivity", "Fine-grained reactivity without Virtual DOM.", "/blog/signals"))
+                .child(article_card("SSR + WASM Hydration", "Server-render then hydrate in the browser.", "/blog/ssr-hydration"))
+        )
+}
+
+fn article_card(title: &str, excerpt: &str, href: &str) -> impl IntoNode {
+    a().href(href).child(
+        div()
+            .class("border rounded-lg p-6 hover:shadow-lg transition-shadow")
+            .child(h2().class("text-xl font-semibold mb-2").text(title))
+            .child(p().class("text-gray-600").text(excerpt))
+    )
+}
+"#;
+    fs::write(project_dir.join("src/app/page.rs"), home)?;
+
+    fs::create_dir_all(project_dir.join("src/app/blog"))?;
+    let blog_page = r#"use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+pub fn page() -> impl IntoNode {
+    div()
+        .class("container mx-auto p-8")
+        .child(h1().class("text-2xl font-bold mb-4").text("All Posts"))
+        .child(p().text("Browse all blog posts."))
+}
+"#;
+    fs::write(project_dir.join("src/app/blog/page.rs"), blog_page)?;
+    let blog_mod = "pub mod page;\n";
+    fs::write(project_dir.join("src/app/blog/mod.rs"), blog_mod)?;
+
+    fs::create_dir_all(project_dir.join("src/app/blog/[slug]"))?;
+    let slug_page = r#"use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+pub fn page() -> impl IntoNode {
+    div()
+        .class("container mx-auto p-8")
+        .child(h1().class("text-2xl font-bold mb-4").text("Blog Post"))
+        .child(p().text("Dynamic blog post content goes here."))
+        .child(a().href("/blog").class("text-blue-500 underline mt-4").text("← Back to blog"))
+}
+"#;
+    fs::write(project_dir.join("src/app/blog/[slug]/page.rs"), slug_page)?;
+    let slug_mod = "pub mod page;\n";
+    fs::write(project_dir.join("src/app/blog/[slug]/mod.rs"), slug_mod)?;
+
+    let app_mod = "pub mod layout;\npub mod page;\npub mod blog;\n";
+    fs::write(project_dir.join("src/app/mod.rs"), app_mod)?;
+
+    Ok(())
+}
+
+fn create_dashboard_template(project_dir: &Path) -> Result<()> {
+    let home = r#"use react_rs_core::create_signal;
+use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+use react_rs_elements::SignalExt;
+
+pub fn page() -> impl IntoNode {
+    let (active_tab, set_active_tab) = create_signal("overview".to_string());
+
+    div()
+        .class("flex min-h-screen")
+        .child(sidebar())
+        .child(
+            div().class("flex-1 p-8")
+                .child(h1().class("text-2xl font-bold mb-6").text("Dashboard"))
+                .child(
+                    div().class("grid grid-cols-3 gap-4 mb-8")
+                        .child(stat_card("Users", "1,234"))
+                        .child(stat_card("Revenue", "$12,345"))
+                        .child(stat_card("Orders", "567"))
+                )
+                .child(
+                    div().class("flex gap-4 mb-4")
+                        .child(tab_button("Overview", "overview", active_tab.clone(), set_active_tab.clone()))
+                        .child(tab_button("Analytics", "analytics", active_tab.clone(), set_active_tab.clone()))
+                )
+                .child(
+                    p().text_reactive(active_tab.map(|t| format!("Selected tab: {}", t)))
+                )
+        )
+}
+
+fn sidebar() -> impl IntoNode {
+    nav()
+        .class("w-64 bg-gray-800 text-white p-4")
+        .child(h2().class("text-xl font-bold mb-6").text("Admin"))
+        .child(
+            ul().class("space-y-2")
+                .child(li().child(a().href("/").class("block p-2 rounded hover:bg-gray-700").text("Dashboard")))
+                .child(li().child(a().href("/settings").class("block p-2 rounded hover:bg-gray-700").text("Settings")))
+        )
+}
+
+fn stat_card(label: &str, value: &str) -> impl IntoNode {
+    div()
+        .class("bg-white rounded-lg shadow p-6")
+        .child(p().class("text-gray-500 text-sm").text(label))
+        .child(p().class("text-2xl font-bold").text(value))
+}
+
+fn tab_button(
+    label: &str,
+    id: &str,
+    _active: react_rs_core::ReadSignal<String>,
+    set_active: react_rs_core::WriteSignal<String>,
+) -> impl IntoNode {
+    let id_owned = id.to_string();
+    button()
+        .class("px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600")
+        .text(label)
+        .on_click(move |_| { set_active.set(id_owned.clone()); })
+}
+"#;
+    fs::write(project_dir.join("src/app/page.rs"), home)?;
+
+    fs::create_dir_all(project_dir.join("src/app/settings"))?;
+    let settings_page = r#"use react_rs_elements::html::*;
+use react_rs_elements::node::IntoNode;
+
+pub fn page() -> impl IntoNode {
+    div()
+        .class("container mx-auto p-8")
+        .child(h1().class("text-2xl font-bold mb-4").text("Settings"))
+        .child(
+            div().class("bg-white rounded-lg shadow p-6")
+                .child(p().text("Application settings go here."))
+        )
+}
+"#;
+    fs::write(project_dir.join("src/app/settings/page.rs"), settings_page)?;
+    let settings_mod = "pub mod page;\n";
+    fs::write(project_dir.join("src/app/settings/mod.rs"), settings_mod)?;
+
+    let app_mod = "pub mod layout;\npub mod page;\npub mod settings;\n";
+    fs::write(project_dir.join("src/app/mod.rs"), app_mod)?;
+
     Ok(())
 }

@@ -28,6 +28,9 @@ enum Commands {
     Create {
         /// Project name
         name: String,
+        /// Project template (default, blog, dashboard)
+        #[arg(short, long, default_value = "default")]
+        template: String,
     },
     /// Start development server
     Dev {
@@ -50,6 +53,9 @@ enum Commands {
         item_type: AddType,
         /// Path or name (e.g., /dashboard, sidebar)
         name: String,
+        /// Generate with interactive signal patterns
+        #[arg(long)]
+        interactive: bool,
     },
     /// Check project for errors
     Check {
@@ -66,14 +72,18 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Create { name } => create_project(&name).await?,
+        Commands::Create { name, template } => create_project(&name, &template).await?,
         Commands::Dev { port } => run_dev_server(port).await?,
         Commands::Build => run_build().await?,
         Commands::Start { port } => run_production_server(port).await?,
-        Commands::Add { item_type, name } => match item_type {
-            AddType::Page => add_page(&name).await?,
+        Commands::Add {
+            item_type,
+            name,
+            interactive,
+        } => match item_type {
+            AddType::Page => add_page(&name, interactive).await?,
             AddType::Layout => add_layout(&name).await?,
-            AddType::Component => add_component(&name).await?,
+            AddType::Component => add_component(&name, interactive).await?,
         },
         Commands::Check { json } => run_check(json).await?,
         Commands::Context => generate_context()?,
