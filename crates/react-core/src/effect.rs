@@ -1,5 +1,6 @@
 use crate::runtime::RUNTIME;
 
+/// Creates a side effect that re-runs when its signal dependencies change.
 pub fn create_effect<F>(f: F)
 where
     F: Fn() + 'static,

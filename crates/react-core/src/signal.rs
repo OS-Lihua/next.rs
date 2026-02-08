@@ -36,6 +36,7 @@ impl<T> Clone for WriteSignal<T> {
     }
 }
 
+/// Creates a reactive signal with the given initial value. Returns a (read, write) pair.
 pub fn create_signal<T>(value: T) -> (ReadSignal<T>, WriteSignal<T>) {
     let inner = Rc::new(RefCell::new(SignalInner {
         value,
@@ -52,6 +53,7 @@ pub fn create_signal<T>(value: T) -> (ReadSignal<T>, WriteSignal<T>) {
 }
 
 impl<T: Clone> ReadSignal<T> {
+    /// Reads the current value. Subscribes the current effect to this signal.
     pub fn get(&self) -> T {
         self.track();
         self.inner.borrow().value.clone()
@@ -79,6 +81,7 @@ impl<T: Clone> ReadSignal<T> {
 }
 
 impl<T> WriteSignal<T> {
+    /// Replaces the signal value and notifies subscribers.
     pub fn set(&self, value: T) {
         {
             let mut inner = self.inner.borrow_mut();

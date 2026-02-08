@@ -23,6 +23,7 @@ impl<T> Clone for Memo<T> {
     }
 }
 
+/// Creates a derived computation that caches its value and updates when dependencies change.
 pub fn create_memo<T, F>(f: F) -> Memo<T>
 where
     F: Fn() -> T + 'static,
