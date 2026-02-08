@@ -15,8 +15,8 @@ name = "next"
 path = "src/main.rs"
 
 [dependencies]
-next-rs-router = { version = "0.1.1", path = "../next-router" }
-next-rs-server = { version = "0.1.1", path = "../next-server" }
+next-rs-router = { version = "0.2.0", path = "../next-router" }
+next-rs-server = { version = "0.2.0", path = "../next-server" }
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 hyper = { version = "1", features = ["full"] }

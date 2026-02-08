@@ -11,6 +11,6 @@ categories.workspace = true
 description = "HTML element API for react.rs with pure Rust method chaining"
 
 [dependencies]
-react-rs-core = { version = "0.1.1", path = "../react-core" }
+react-rs-core = { version = "0.2.0", path = "../react-core" }
 
 [dev-dependencies]

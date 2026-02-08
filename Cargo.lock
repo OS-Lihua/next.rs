@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-actions"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -820,7 +820,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-assets"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -828,7 +828,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -847,7 +847,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-macros"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -856,7 +856,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-middleware"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "http",
  "hyper",
@@ -867,7 +867,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-router"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "react-rs-core",
  "react-rs-dom",
@@ -877,7 +877,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-rsc"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "react-rs-core",
  "react-rs-elements",
@@ -888,7 +888,7 @@ dependencies = [
 
 [[package]]
 name = "next-rs-server"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1128,14 +1128,14 @@ dependencies = [
 
 [[package]]
 name = "react-rs-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "criterion",
 ]
 
 [[package]]
 name = "react-rs-dom"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "js-sys",
  "react-rs-core",
@@ -1146,14 +1146,14 @@ dependencies = [
 
 [[package]]
 name = "react-rs-elements"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "react-rs-core",
 ]
 
 [[package]]
 name = "react-rs-wasm"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "js-sys",
  "next-rs-rsc",
