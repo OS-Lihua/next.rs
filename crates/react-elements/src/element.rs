@@ -97,6 +97,22 @@ impl Element {
         self
     }
 
+    pub fn input_type(self, input_type: crate::types::InputType) -> Self {
+        self.type_(input_type.as_str())
+    }
+
+    pub fn target(mut self, target: crate::types::LinkTarget) -> Self {
+        self.attributes
+            .push(Attribute::new("target", target.as_str()));
+        self
+    }
+
+    pub fn method(mut self, method: crate::types::FormMethod) -> Self {
+        self.attributes
+            .push(Attribute::new("method", method.as_str()));
+        self
+    }
+
     pub fn name(mut self, name: &str) -> Self {
         self.attributes.push(Attribute::new("name", name));
         self
