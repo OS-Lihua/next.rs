@@ -146,6 +146,31 @@ fn hydrate_node(virtual_node: &Node, dom_node: &web_sys::Node) -> HydrationResul
 
             Ok(())
         }
+        Node::KeyedList(list_fn) => {
+            use react_rs_core::effect::create_effect;
+
+            let dom_element = dom_node.dyn_ref::<web_sys::Element>().ok_or_else(|| {
+                HydrationError::NodeMismatch {
+                    expected: "keyed-list-container".to_string(),
+                    found: "non-element".to_string(),
+                }
+            })?;
+
+            let container_rc = Rc::new(dom_element.clone());
+            let list_fn = list_fn.clone();
+
+            create_effect(move || {
+                container_rc.set_inner_html("");
+                let doc = get_document();
+                for (_, child_node) in list_fn() {
+                    if let Ok(dom_child) = crate::dom::render_node_pub(&doc, &child_node) {
+                        let _ = container_rc.append_child(&dom_child);
+                    }
+                }
+            });
+
+            Ok(())
+        }
         Node::Head(_) | Node::Suspense(_) | Node::ErrorBoundary(_) => Ok(()),
     }
 }

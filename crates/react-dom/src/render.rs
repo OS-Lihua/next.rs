@@ -56,6 +56,17 @@ fn render_node(node: &Node) -> String {
                 items_html
             )
         }
+        Node::KeyedList(list_fn) => {
+            let items_html = list_fn()
+                .iter()
+                .map(|(_, node)| render_node(node))
+                .collect::<Vec<_>>()
+                .join("");
+            format!(
+                "<span data-list style=\"display:contents\">{}</span>",
+                items_html
+            )
+        }
         Node::Head(_) => String::new(),
         Node::Suspense(sus) => {
             if (sus.loading_signal)() {

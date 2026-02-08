@@ -14,7 +14,7 @@ pub use component::{component, Component};
 pub use element::Element;
 pub use head::Head;
 pub use html::*;
-pub use node::{each, IntoNode, Node};
+pub use node::{each, each_keyed, IntoNode, Node};
 pub use reactive::{IntoReactiveBool, IntoReactiveString, ReactiveValue, SignalExt};
 pub use style::{style, Style};
 pub use suspense::{error_boundary, suspense};

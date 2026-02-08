@@ -68,23 +68,85 @@ async fn run_check_json() -> Result<()> {
                             }
                         }
 
-                        diagnostics.push(serde_json::json!({
+                        let fix = suggest_fix(level, text, &file);
+
+                        let mut diag = serde_json::json!({
                             "level": level,
                             "message": text,
                             "file": file,
                             "line": line_num,
                             "column": column,
-                        }));
+                        });
+
+                        if let Some(fix_obj) = fix {
+                            diag.as_object_mut()
+                                .unwrap()
+                                .insert("fix".to_string(), fix_obj);
+                        }
+
+                        diagnostics.push(diag);
                     }
                 }
             }
         }
     }
 
+    let errors = diagnostics
+        .iter()
+        .filter(|d| d.get("level").and_then(|l| l.as_str()) == Some("error"))
+        .count();
+    let warnings = diagnostics
+        .iter()
+        .filter(|d| d.get("level").and_then(|l| l.as_str()) == Some("warning"))
+        .count();
+
+    let result = serde_json::json!({
+        "status": if errors == 0 { "ok" } else { "error" },
+        "diagnostics": diagnostics,
+        "summary": {
+            "errors": errors,
+            "warnings": warnings,
+        }
+    });
+
     println!(
         "{}",
-        serde_json::to_string_pretty(&diagnostics).unwrap_or_else(|_| "[]".to_string())
+        serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string())
     );
 
     Ok(())
+}
+
+fn suggest_fix(_level: &str, message: &str, file: &str) -> Option<serde_json::Value> {
+    if message.contains("cannot find") && message.contains("page") && file.contains("page.rs") {
+        return Some(serde_json::json!({
+            "description": "Add a public page function",
+            "suggestion": "pub fn page() -> impl IntoNode { div().text(\"Page content\") }"
+        }));
+    }
+    if message.contains("cannot find") && message.contains("layout") && file.contains("layout.rs") {
+        return Some(serde_json::json!({
+            "description": "Add a public layout function",
+            "suggestion": "pub fn layout(children: Node) -> impl IntoNode { div().child(children) }"
+        }));
+    }
+    if message.contains("unresolved import") && message.contains("react_rs") {
+        return Some(serde_json::json!({
+            "description": "Add missing dependency to Cargo.toml",
+            "suggestion": "Add `react-rs-core = \"0.2\"` or `react-rs-elements = \"0.2\"` to [dependencies]"
+        }));
+    }
+    if message.contains("IntoNode") && message.contains("not in scope") {
+        return Some(serde_json::json!({
+            "description": "Import IntoNode trait",
+            "suggestion": "use react_rs_elements::node::IntoNode;"
+        }));
+    }
+    if message.contains("SignalExt") && message.contains("not in scope") {
+        return Some(serde_json::json!({
+            "description": "Import SignalExt trait for .map()",
+            "suggestion": "use react_rs_elements::SignalExt;"
+        }));
+    }
+    None
 }

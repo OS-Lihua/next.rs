@@ -1,4 +1,4 @@
-use crate::{DirectiveInfo, DirectiveRegistry};
+use crate::directive::{DirectiveInfo, DirectiveRegistry};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};

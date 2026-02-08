@@ -1,31 +1,37 @@
+#[deprecated(
+    note = "use_client! macro is deprecated. Use file conventions instead (zero-macro philosophy)."
+)]
 #[macro_export]
 macro_rules! use_client {
     ($module:expr => $name:ident, $render:expr) => {{
-        $crate::global_registry().register_client($module, stringify!($name));
-        $crate::client_component(stringify!($name), $module, $render)
+        $crate::directive::global_registry().register_client($module, stringify!($name));
+        $crate::markers::client_component(stringify!($name), $module, $render)
     }};
 
     ($module:expr => fn $name:ident() $body:block) => {{
-        $crate::global_registry().register_client($module, stringify!($name));
-        $crate::client_component(stringify!($name), $module, || $body)
+        $crate::directive::global_registry().register_client($module, stringify!($name));
+        $crate::markers::client_component(stringify!($name), $module, || $body)
     }};
 
     ($name:ident, $module:expr, $render:expr) => {{
-        $crate::global_registry().register_client($module, stringify!($name));
-        $crate::client_component(stringify!($name), $module, $render)
+        $crate::directive::global_registry().register_client($module, stringify!($name));
+        $crate::markers::client_component(stringify!($name), $module, $render)
     }};
 }
 
+#[deprecated(
+    note = "use_server! macro is deprecated. Use Server Actions via ActionRegistry instead (zero-macro philosophy)."
+)]
 #[macro_export]
 macro_rules! use_server {
     ($module:expr => $name:ident, $handler:expr) => {{
-        $crate::global_registry().register_server($module, stringify!($name));
+        $crate::directive::global_registry().register_server($module, stringify!($name));
         $crate::ServerActionWrapper::new(stringify!($name), $handler)
     }};
 
     ($name:ident, $handler:expr) => {{
         let module = concat!(module_path!(), "/", file!());
-        $crate::global_registry().register_server(module, stringify!($name));
+        $crate::directive::global_registry().register_server(module, stringify!($name));
         $crate::ServerActionWrapper::new(stringify!($name), $handler)
     }};
 }
@@ -123,7 +129,7 @@ impl ActionReference {
 
 #[cfg(test)]
 mod tests {
-    use crate::global_registry;
+    use crate::directive::global_registry;
     use react_rs_elements::html::*;
 
     #[test]

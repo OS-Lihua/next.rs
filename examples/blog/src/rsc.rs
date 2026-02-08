@@ -1,4 +1,5 @@
-use next_rs_rsc::{async_server_component, client_component, server_component, RscPayload};
+use next_rs_rsc::markers::{client_component, server_component};
+use next_rs_rsc::{async_server_component, RscPayload};
 use react_rs_elements::html::*;
 use react_rs_elements::Element;
 
@@ -17,7 +18,7 @@ pub fn article_list_server() -> impl Fn() -> Element + 'static {
 }
 
 pub fn create_article_list_component(
-) -> next_rs_rsc::Component<next_rs_rsc::Server, impl Fn() -> Element + 'static> {
+) -> next_rs_rsc::markers::Component<next_rs_rsc::markers::Server, impl Fn() -> Element + 'static> {
     server_component("article-list", article_list_server())
 }
 
@@ -33,7 +34,7 @@ pub fn article_detail_server(slug: String) -> impl Fn() -> Element + 'static {
 
 pub fn create_article_detail_component(
     slug: String,
-) -> next_rs_rsc::Component<next_rs_rsc::Server, impl Fn() -> Element + 'static> {
+) -> next_rs_rsc::markers::Component<next_rs_rsc::markers::Server, impl Fn() -> Element + 'static> {
     let id = format!("article-detail-{}", slug);
     server_component(id, article_detail_server(slug))
 }
@@ -47,7 +48,8 @@ pub fn like_button_client() -> impl Fn() -> Element + 'static {
     }
 }
 
-pub fn create_like_button_component() -> next_rs_rsc::ClientMarker<impl Fn() -> Element + 'static> {
+pub fn create_like_button_component(
+) -> next_rs_rsc::markers::ClientMarker<impl Fn() -> Element + 'static> {
     client_component(
         "like-button",
         "./components/LikeButton.js",

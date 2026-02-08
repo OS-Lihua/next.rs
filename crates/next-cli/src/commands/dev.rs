@@ -37,6 +37,7 @@ pub async fn run_dev_server(port: u16) -> Result<()> {
     }
 
     compile_tailwind();
+    let _ = super::generate_context();
 
     println!(
         "\n✓ Development server starting at http://127.0.0.1:{}",

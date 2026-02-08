@@ -3,8 +3,8 @@ mod config;
 
 use clap::{Parser, Subcommand};
 use commands::{
-    add_component, add_layout, add_page, create_project, run_build, run_check, run_dev_server,
-    run_production_server,
+    add_component, add_layout, add_page, create_project, generate_context, run_build, run_check,
+    run_dev_server, run_production_server,
 };
 
 #[derive(Parser)]
@@ -57,6 +57,8 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Generate .next-context.json for AI agents
+    Context,
 }
 
 #[tokio::main]
@@ -74,6 +76,7 @@ async fn main() -> anyhow::Result<()> {
             AddType::Component => add_component(&name).await?,
         },
         Commands::Check { json } => run_check(json).await?,
+        Commands::Context => generate_context()?,
     }
 
     Ok(())

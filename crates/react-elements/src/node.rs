@@ -11,6 +11,7 @@ pub enum Node {
     Fragment(Vec<Node>),
     Conditional(ReactiveValue<bool>, Box<Node>, Option<Box<Node>>),
     ReactiveList(Rc<dyn Fn() -> Vec<Node>>),
+    KeyedList(Rc<dyn Fn() -> Vec<(String, Node)>>),
     Head(Head),
     Suspense(SuspenseData),
     ErrorBoundary(ErrorBoundaryData),
@@ -66,6 +67,26 @@ where
             list.iter()
                 .enumerate()
                 .map(|(i, item)| render(item, i))
+                .collect()
+        })
+    }))
+}
+
+pub fn each_keyed<T, K, F>(
+    items: react_rs_core::signal::ReadSignal<Vec<T>>,
+    key_fn: impl Fn(&T) -> K + 'static,
+    render: F,
+) -> Node
+where
+    T: Clone + 'static,
+    K: ToString + 'static,
+    F: Fn(&T, usize) -> Node + 'static,
+{
+    Node::KeyedList(Rc::new(move || {
+        items.with(|list| {
+            list.iter()
+                .enumerate()
+                .map(|(i, item)| (key_fn(item).to_string(), render(item, i)))
                 .collect()
         })
     }))

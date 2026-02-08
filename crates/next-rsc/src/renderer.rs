@@ -51,6 +51,11 @@ impl RscRenderer {
                     list_fn().iter().map(|n| self.render_node(n)).collect();
                 RscNode::element("fragment", json!({}), children)
             }
+            Node::KeyedList(list_fn) => {
+                let children: Vec<RscNode> =
+                    list_fn().iter().map(|(_, n)| self.render_node(n)).collect();
+                RscNode::element("fragment", json!({}), children)
+            }
             Node::Head(_) => RscNode::text(""),
             Node::Suspense(sus) => {
                 if (sus.loading_signal)() {

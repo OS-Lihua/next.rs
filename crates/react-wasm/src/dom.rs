@@ -195,6 +195,78 @@ fn render_node(document: &Document, node: &Node) -> Result<web_sys::Node, JsValu
 
             Ok(container.into())
         }
+        Node::KeyedList(list_fn) => {
+            use react_rs_core::effect::create_effect;
+            use std::cell::RefCell;
+            use std::collections::HashMap;
+
+            let container = document.create_element("span")?;
+            container.set_attribute("data-list", "")?;
+            container.set_attribute("style", "display:contents")?;
+
+            let initial_items = list_fn();
+            let mut initial_cache: HashMap<String, web_sys::Node> = HashMap::new();
+            let mut initial_keys: Vec<String> = Vec::new();
+
+            for (key, child_node) in &initial_items {
+                let dom_child = render_node(document, child_node)?;
+                container.append_child(&dom_child)?;
+                initial_cache.insert(key.clone(), dom_child);
+                initial_keys.push(key.clone());
+            }
+
+            let container_rc = Rc::new(container.clone());
+            let list_fn = list_fn.clone();
+            let cache = Rc::new(RefCell::new(initial_cache));
+            let prev_keys = Rc::new(RefCell::new(initial_keys));
+
+            create_effect(move || {
+                let new_items = list_fn();
+                let doc = get_document();
+                let mut cache_ref = cache.borrow_mut();
+                let mut old_keys = prev_keys.borrow_mut();
+
+                let new_keys: Vec<String> = new_items.iter().map(|(k, _)| k.clone()).collect();
+
+                let new_key_set: std::collections::HashSet<&String> = new_keys.iter().collect();
+                let old_key_set: std::collections::HashSet<&String> = old_keys.iter().collect();
+
+                for old_key in &*old_keys {
+                    if !new_key_set.contains(old_key) {
+                        if let Some(dom_node) = cache_ref.remove(old_key) {
+                            let _ = container_rc.remove_child(&dom_node);
+                        }
+                    }
+                }
+
+                for (key, child_node) in &new_items {
+                    if !old_key_set.contains(key) {
+                        if let Ok(dom_child) = render_node(&doc, child_node) {
+                            cache_ref.insert(key.clone(), dom_child);
+                        }
+                    }
+                }
+
+                let children = container_rc.child_nodes();
+                for (i, key) in new_keys.iter().enumerate() {
+                    if let Some(dom_node) = cache_ref.get(key) {
+                        let current = children.get(i as u32);
+                        let needs_move = current
+                            .as_ref()
+                            .map(|c| !c.is_same_node(Some(dom_node)))
+                            .unwrap_or(true);
+                        if needs_move {
+                            let reference = children.get(i as u32);
+                            let _ = container_rc.insert_before(dom_node, reference.as_ref());
+                        }
+                    }
+                }
+
+                *old_keys = new_keys;
+            });
+
+            Ok(container.into())
+        }
         Node::Head(_) => {
             let placeholder = document.create_text_node("");
             Ok(placeholder.into())
