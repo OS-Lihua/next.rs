@@ -11,12 +11,12 @@ categories.workspace = true
 description = "HTTP server for next.rs with SSR/SSG/ISR support"
 
 [dependencies]
-next-rs-router = { version = "0.2.0", path = "../next-router" }
-next-rs-rsc = { version = "0.2.0", path = "../next-rsc" }
-next-rs-actions = { version = "0.2.0", path = "../next-actions" }
-next-rs-middleware = { version = "0.2.0", path = "../next-middleware" }
-react-rs-dom = { version = "0.2.0", path = "../react-dom" }
-react-rs-elements = { version = "0.2.0", path = "../react-elements" }
+next-rs-router = { version = "0.3.0", path = "../next-router" }
+next-rs-rsc = { version = "0.3.0", path = "../next-rsc" }
+next-rs-actions = { version = "0.3.0", path = "../next-actions" }
+next-rs-middleware = { version = "0.3.0", path = "../next-middleware" }
+react-rs-dom = { version = "0.3.0", path = "../react-dom" }
+react-rs-elements = { version = "0.3.0", path = "../react-elements" }
 tokio = { version = "1", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 http-body-util = "0.1"

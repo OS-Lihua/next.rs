@@ -10,7 +10,7 @@ use next_rs_router::Router;
 use crate::api::{ApiRequest, ApiResponse, ApiRouteHandler};
 use crate::rsc_handler::RscHandler;
 use crate::ssr::{PageRegistry, SsrRenderer};
-use next_rs_middleware::{MiddlewareMatcher, MiddlewareResult, NextRequest, NextResponse};
+use next_rs_middleware::{MiddlewareMatcher, MiddlewareResult, NextRequest};
 
 const RSC_PREFIX: &str = "/_rsc";
 const API_PREFIX: &str = "/api";

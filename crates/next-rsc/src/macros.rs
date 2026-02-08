@@ -1,6 +1,3 @@
-#[deprecated(
-    note = "use_client! macro is deprecated. Use file conventions instead (zero-macro philosophy)."
-)]
 #[macro_export]
 macro_rules! use_client {
     ($module:expr => $name:ident, $render:expr) => {{
@@ -19,9 +16,6 @@ macro_rules! use_client {
     }};
 }
 
-#[deprecated(
-    note = "use_server! macro is deprecated. Use Server Actions via ActionRegistry instead (zero-macro philosophy)."
-)]
 #[macro_export]
 macro_rules! use_server {
     ($module:expr => $name:ident, $handler:expr) => {{

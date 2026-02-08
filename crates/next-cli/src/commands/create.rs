@@ -57,21 +57,21 @@ name = "server"
 path = "src/main.rs"
 
 [dependencies]
-next-rs-server = "0.2"
-next-rs-router = "0.2"
-react-rs-core = "0.2"
-react-rs-elements = "0.2"
-react-rs-dom = "0.2"
+next-rs-server = "0.3"
+next-rs-router = "0.3"
+react-rs-core = "0.3"
+react-rs-elements = "0.3"
+react-rs-dom = "0.3"
 tokio = {{ version = "1", features = ["full"] }}
 anyhow = "1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
-react-rs-wasm = "0.2"
+react-rs-wasm = "0.3"
 web-sys = {{ version = "0.3", features = ["console", "Window", "Location"] }}
 
 [build-dependencies]
-next-rs-router = "0.2"
+next-rs-router = "0.3"
 "#,
         name
     );
