@@ -1,8 +1,8 @@
-use react_rs_core::create_signal;
+use react_rs_core::{create_resource, create_signal, provide_context, Resource};
 use react_rs_elements::html;
 use react_rs_elements::node::{each, IntoNode, Node};
 use react_rs_elements::reactive::SignalExt;
-use react_rs_elements::Element;
+use react_rs_elements::{error_boundary, suspense, Element};
 
 pub fn navigation() -> Element {
     html::nav().class("nav").child(
@@ -158,6 +158,126 @@ pub fn greeting_form() -> Element {
                 )
                 .child(html::span().text("!")),
         )
+}
+
+pub fn data_loading_demo() -> Node {
+    let resource: Resource<Vec<String>> = create_resource();
+    let (users, set_users) = create_signal(Vec::<String>::new());
+
+    let load_res = resource.clone();
+    let load_users = set_users.clone();
+    let error_res = resource.clone();
+
+    let load = move |_: react_rs_elements::events::Event| {
+        load_res.set_ready(vec![
+            "Alice".to_string(),
+            "Bob".to_string(),
+            "Charlie".to_string(),
+        ]);
+        load_users.set(vec![
+            "Alice".to_string(),
+            "Bob".to_string(),
+            "Charlie".to_string(),
+        ]);
+    };
+
+    let trigger_error = move |_: react_rs_elements::events::Event| {
+        error_res.set_error("Simulated network timeout");
+    };
+
+    html::div()
+        .class("data-demo")
+        .child(html::h3().text("Resource + Suspense + ErrorBoundary"))
+        .child(
+            html::div()
+                .class("counter-buttons")
+                .child(
+                    html::button()
+                        .class("btn btn-increment")
+                        .text("Load Data")
+                        .on_click(load),
+                )
+                .child(
+                    html::button()
+                        .class("btn btn-decrement")
+                        .text("Trigger Error")
+                        .on_click(trigger_error),
+                ),
+        )
+        .child(error_boundary(
+            &resource,
+            |err| {
+                html::p()
+                    .class("error-msg")
+                    .text(format!("Error: {}", err))
+                    .into_node()
+            },
+            suspense(
+                &resource,
+                html::p().class("loading-msg").text("Loading data..."),
+                each(users, |item, _| {
+                    html::li()
+                        .class("todo-item")
+                        .text(item.as_str())
+                        .into_node()
+                }),
+            ),
+        ))
+        .into_node()
+}
+
+#[derive(Clone, Debug)]
+pub struct AppTheme {
+    pub name: String,
+}
+
+pub fn context_demo() -> Node {
+    provide_context(AppTheme {
+        name: "Default".to_string(),
+    });
+
+    let (theme_name, set_theme) = create_signal("Default".to_string());
+
+    let set_dark = set_theme.clone();
+    let set_light = set_theme.clone();
+
+    html::div()
+        .class("context-demo")
+        .child(html::h3().text("Context API"))
+        .child(
+            html::p().text("Current theme: ").child(
+                html::span()
+                    .class("greeting-name")
+                    .text_reactive(theme_name.map(|n| n.clone())),
+            ),
+        )
+        .child(
+            html::div()
+                .class("counter-buttons")
+                .child(
+                    html::button()
+                        .class("btn btn-increment")
+                        .text("Dark Theme")
+                        .on_click(move |_| {
+                            provide_context(AppTheme {
+                                name: "Dark".to_string(),
+                            });
+                            set_dark.set("Dark".to_string());
+                        }),
+                )
+                .child(
+                    html::button()
+                        .class("btn btn-reset")
+                        .text("Light Theme")
+                        .on_click(move |_| {
+                            provide_context(AppTheme {
+                                name: "Light".to_string(),
+                            });
+                            set_light.set("Light".to_string());
+                        }),
+                ),
+        )
+        .into_node()
 }
 
 pub fn feature_card(title: &str, description: &str) -> Element {

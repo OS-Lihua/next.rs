@@ -215,6 +215,28 @@ fn render_html(route: &str) -> String {
             font-weight: bold;
             text-align: center;
         }}
+        .data-demo, .context-demo {{
+            margin-top: 30px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            text-align: center;
+        }}
+        .data-demo h3, .context-demo h3 {{
+            margin-bottom: 15px;
+        }}
+        .loading-msg {{
+            padding: 20px;
+            color: #ffd700;
+            font-style: italic;
+        }}
+        .error-msg {{
+            padding: 15px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 6px;
+            font-weight: bold;
+        }}
         .btn-add {{
             margin-top: 15px;
             background: #667eea;

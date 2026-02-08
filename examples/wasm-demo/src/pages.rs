@@ -2,7 +2,8 @@ use react_rs_elements::html;
 use react_rs_elements::node::{IntoNode, Node};
 
 use crate::components::{
-    counter_widget, feature_card, greeting_form, navigation, site_footer, todo_list,
+    context_demo, counter_widget, data_loading_demo, feature_card, greeting_form, navigation,
+    site_footer, todo_list,
 };
 
 pub fn render_page(route: &str) -> Node {
@@ -66,8 +67,8 @@ fn home_page() -> react_rs_elements::Element {
                             "Server-side rendering with seamless client hydration.",
                         ))
                         .child(feature_card(
-                            "React Server Components",
-                            "Use 'use client' and 'use server' directives.",
+                            "Resource + Suspense",
+                            "Async data loading with fallback UI and error boundaries.",
                         )),
                 ),
         )
@@ -83,19 +84,13 @@ fn home_page() -> react_rs_elements::Element {
 fn counter_page() -> react_rs_elements::Element {
     html::div()
         .class("page counter-page")
-        .child(html::h2().text("Counter Demo"))
-        .child(html::p().text("This counter demonstrates reactive state management with Signals."))
-        .child(counter_widget())
+        .child(html::h2().text("Interactive Demos"))
         .child(
-            html::div()
-                .class("explanation")
-                .child(html::h3().text("How it works"))
-                .child(html::p().text(
-                    "The counter uses create_signal() to create reactive state. \
-                     When buttons are clicked, the signal is updated and the DOM \
-                     automatically reflects the new value - no virtual DOM diffing needed!",
-                )),
+            html::p().text("Showcasing signals, conditional rendering, data loading, and context."),
         )
+        .child(counter_widget())
+        .child(data_loading_demo())
+        .child(context_demo())
 }
 
 fn about_page() -> react_rs_elements::Element {
