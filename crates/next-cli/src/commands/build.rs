@@ -99,7 +99,7 @@ fn build_server_binary() -> Result<()> {
     Ok(())
 }
 
-fn build_client_wasm(out_dir: &PathBuf) -> Result<()> {
+fn build_client_wasm(out_dir: &std::path::Path) -> Result<()> {
     let has_wasm_target = Command::new("rustup")
         .args(["target", "list", "--installed"])
         .output()
@@ -170,7 +170,7 @@ fn build_client_wasm(out_dir: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn compile_tailwind_production(out_dir: &PathBuf) {
+fn compile_tailwind_production(out_dir: &std::path::Path) {
     let input = std::path::Path::new("input.css");
     if !input.exists() {
         return;

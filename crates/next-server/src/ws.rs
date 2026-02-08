@@ -125,7 +125,7 @@ pub async fn handle_ws_upgrade(
 
     let accept_key = compute_accept_key(key.as_deref().unwrap());
 
-    let (outgoing_tx, mut outgoing_rx) = mpsc::unbounded_channel::<Message>();
+    let (outgoing_tx, outgoing_rx) = mpsc::unbounded_channel::<Message>();
     let (incoming_tx, incoming_rx) = mpsc::unbounded_channel::<WsMessage>();
 
     let sender = WsSender { tx: outgoing_tx };

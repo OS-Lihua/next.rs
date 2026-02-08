@@ -103,7 +103,7 @@ fn build_registry() -> PageRegistry {
                         "/" => app::page::page().into_node(),
                         _ => {
                             use react_rs_elements::html::*;
-                            div().text(&format!("Page: {}", route)).into_node()
+                            div().text(format!("Page: {}", route)).into_node()
                         }
                     }
                 });

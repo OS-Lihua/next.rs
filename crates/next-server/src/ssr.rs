@@ -71,7 +71,7 @@ impl SsrRenderer {
             page_fn(params)
         } else {
             div()
-                .child(h1().text(&format!("Route: {}", route_path)))
+                .child(h1().text(format!("Route: {}", route_path)))
                 .child(p().text("No page component registered for this route."))
                 .into_node()
         };
@@ -180,7 +180,7 @@ mod tests {
         registry.register_page("/blog/[slug]", |params| {
             let slug = params.get("slug").map(|s| s.as_str()).unwrap_or("unknown");
             div()
-                .child(h1().text(&format!("Blog: {}", slug)))
+                .child(h1().text(format!("Blog: {}", slug)))
                 .into_node()
         });
         registry.register_layout("/", |children| {

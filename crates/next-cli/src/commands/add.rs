@@ -19,8 +19,8 @@ pub async fn add_page(path: &str) -> Result<()> {
     }
 
     let page_name = clean_path
-        .split('/')
-        .last()
+        .rsplit('/')
+        .next()
         .unwrap_or("home")
         .replace(['[', ']'], "");
     let page_name = if page_name.is_empty() {

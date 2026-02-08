@@ -2,6 +2,7 @@ use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct NextConfig {
     #[serde(default = "default_port")]
@@ -25,6 +26,7 @@ impl Default for NextConfig {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct ImageConfig {
     #[serde(default)]
@@ -55,6 +57,7 @@ fn default_loader() -> String {
     "default".to_string()
 }
 
+#[allow(dead_code)]
 impl NextConfig {
     pub fn load() -> Self {
         let config_path = Path::new("next.config.toml");
