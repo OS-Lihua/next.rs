@@ -54,11 +54,21 @@ impl Default for PageRegistry {
     }
 }
 
-pub struct SsrRenderer;
+pub struct SsrRenderer {
+    package_name: String,
+}
 
 impl SsrRenderer {
     pub fn new() -> Self {
-        Self
+        Self {
+            package_name: "app".to_string(),
+        }
+    }
+
+    pub fn with_package_name(name: impl Into<String>) -> Self {
+        Self {
+            package_name: name.into(),
+        }
     }
 
     pub fn render(
@@ -84,6 +94,7 @@ impl SsrRenderer {
 
         let body_html = render_to_string(&content).html;
         let params_json = serde_json::to_string(params).unwrap_or_else(|_| "{}".to_string());
+        let pkg_name = &self.package_name;
 
         format!(
             r#"<!DOCTYPE html>
@@ -92,18 +103,21 @@ impl SsrRenderer {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>next.rs | {route}</title>
+    <link rel="stylesheet" href="/styles.css">
     <script>window.__NEXT_DATA__ = {{ route: "{route}", params: {params} }};</script>
 </head>
 <body>
     <div id="__next">{body}</div>
     <script type="module">
-        console.log('next.rs hydration ready');
+        import init from '/pkg/{pkg}.js';
+        init().catch(err => console.error('WASM load failed:', err));
     </script>
 </body>
 </html>"#,
             route = route_path,
             params = params_json,
             body = body_html,
+            pkg = pkg_name,
         )
     }
 

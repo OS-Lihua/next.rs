@@ -174,6 +174,7 @@ impl RequestHandler {
         let candidates = [
             PathBuf::from("public").join(clean),
             PathBuf::from(".next/static").join(clean),
+            PathBuf::from("pkg").join(clean),
         ];
 
         for file_path in candidates {

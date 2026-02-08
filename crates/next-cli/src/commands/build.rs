@@ -140,7 +140,7 @@ fn build_client_wasm(out_dir: &std::path::Path) -> Result<()> {
         anyhow::bail!("WASM build failed");
     }
 
-    let wasm_out = out_dir.join("static/wasm");
+    let wasm_out = out_dir.join("pkg");
     fs::create_dir_all(&wasm_out).context("Failed to create WASM output directory")?;
 
     let pkg_name = get_package_name().unwrap_or_else(|| "app".to_string());

@@ -16,6 +16,11 @@ cd my-app
 next dev
 ```
 
+`next create` generates a fully working SSR + WASM hydration project:
+- SSR renders HTML on the server, browser loads WASM and hydrates automatically
+- Interactive components (signals, events) work in the browser without configuration
+- The generated counter button proves hydration is working on first run
+
 ## Element API
 
 All HTML elements are functions returning `Element`. Chain methods to build UI:
@@ -67,12 +72,12 @@ use react_rs_elements::node::IntoNode;
 
 ```rust
 use react_rs_core::{create_signal, create_effect, create_memo};
-use react_rs_elements::reactive::SignalExt;
+use react_rs_elements::SignalExt;
 
 let (count, set_count) = create_signal(0);
 count.get();                    // read
 set_count.set(5);               // replace
-set_count.update(|n| *n + 1);  // mutate
+set_count.update(|n| *n += 1); // mutate
 
 create_effect(move || { println!("{}", count.get()); });
 
@@ -135,11 +140,13 @@ pub fn page() -> impl IntoNode {
 
 ## Pattern: Interactive Component
 
+SSR + hydration works automatically. Write signals and events — they render as static HTML on the server and become interactive in the browser via WASM hydration.
+
 ```rust
 use react_rs_core::create_signal;
 use react_rs_elements::html::*;
 use react_rs_elements::node::IntoNode;
-use react_rs_elements::reactive::SignalExt;
+use react_rs_elements::SignalExt;
 
 pub fn counter() -> impl IntoNode {
     let (count, set_count) = create_signal(0);
@@ -149,7 +156,7 @@ pub fn counter() -> impl IntoNode {
             button()
                 .class("px-4 py-2 bg-blue-500 text-white rounded")
                 .text("Increment")
-                .on_click(move |_| set_count.update(|n| *n + 1))
+                .on_click(move |_| { set_count.update(|n| *n += 1); })
         )
 }
 ```

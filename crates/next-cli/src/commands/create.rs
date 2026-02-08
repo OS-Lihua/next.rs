@@ -18,7 +18,8 @@ pub async fn create_project(name: &str) -> Result<()> {
 
     create_cargo_toml(project_dir, name)?;
     create_build_rs(project_dir)?;
-    create_main_rs(project_dir)?;
+    create_lib_rs(project_dir)?;
+    create_main_rs(project_dir, name)?;
     create_root_layout(project_dir)?;
     create_home_page(project_dir)?;
     create_gitignore(project_dir)?;
@@ -40,17 +41,29 @@ name = "{}"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
 [dependencies]
-next-rs-server = "0.1"
-next-rs-router = "0.1"
-react-rs-core = "0.1"
-react-rs-elements = "0.1"
-react-rs-dom = "0.1"
+next-rs-server = "0.2"
+next-rs-router = "0.2"
+react-rs-core = "0.2"
+react-rs-elements = "0.2"
+react-rs-dom = "0.2"
 tokio = {{ version = "1", features = ["full"] }}
 anyhow = "1"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+react-rs-wasm = "0.2"
+web-sys = {{ version = "0.3", features = ["console", "Window", "Location"] }}
+
 [build-dependencies]
-next-rs-router = "0.1"
+next-rs-router = "0.2"
 "#,
         name
     );
@@ -83,58 +96,97 @@ fn main() {
     Ok(())
 }
 
-fn create_main_rs(project_dir: &Path) -> Result<()> {
-    let content = r#"mod app;
+fn create_lib_rs(project_dir: &Path) -> Result<()> {
+    let content = r#"pub mod app;
 
-use next_rs_server::{DevServer, PageRegistry, ServerConfig};
+use react_rs_elements::node::{IntoNode, Node};
+
+pub fn render_app(route: &str) -> Node {
+    match route {
+        "/" => app::page::page().into_node(),
+        _ => app::page::page().into_node(),
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    use wasm_bindgen::prelude::*;
+    
+    #[wasm_bindgen(start)]
+    pub fn hydrate() {
+        let window = web_sys::window().expect("no window");
+        let pathname = window.location().pathname().unwrap_or_else(|_| "/".to_string());
+        
+        react_rs_wasm::setup_link_interception();
+        
+        let node = super::render_app(&pathname);
+        match react_rs_wasm::hydrate(&node, "__next") {
+            Ok(_) => web_sys::console::log_1(&"Hydration successful!".into()),
+            Err(_) => { let _ = react_rs_wasm::mount(&node, "__next"); }
+        }
+    }
+}
+"#;
+    fs::write(project_dir.join("src/lib.rs"), content).context("Failed to write lib.rs")?;
+    Ok(())
+}
+
+fn create_main_rs(project_dir: &Path, name: &str) -> Result<()> {
+    let content = format!(
+        r#"use next_rs_server::{{DevServer, PageRegistry, ServerConfig}};
 use react_rs_elements::node::IntoNode;
+use {}::app;
 
 include!(concat!(env!("OUT_DIR"), "/routes_generated.rs"));
 
-fn build_registry() -> PageRegistry {
+fn build_registry() -> PageRegistry {{
     let mut registry = PageRegistry::new();
 
-    for &(route, kind, _file) in ROUTE_TABLE {
-        match kind {
-            "page" => {
+    for &(route, kind, _file) in ROUTE_TABLE {{
+        match kind {{
+            "page" => {{
                 let route = route.to_string();
-                registry.register_page(&route, move |_params| {
-                    match route.as_str() {
+                let route_key = route.clone();
+                registry.register_page(&route_key, move |_params| {{
+                    match route.as_str() {{
                         "/" => app::page::page().into_node(),
-                        _ => {
+                        _ => {{
                             use react_rs_elements::html::*;
-                            div().text(format!("Page: {}", route)).into_node()
-                        }
-                    }
-                });
-            }
-            "layout" => {
+                            div().text(format!("Page: {{}}", route)).into_node()
+                        }}
+                    }}
+                }});
+            }}
+            "layout" => {{
                 let route = route.to_string();
-                registry.register_layout(&route, move |children| {
-                    match route.as_str() {
+                let route_key = route.clone();
+                registry.register_layout(&route_key, move |children| {{
+                    match route.as_str() {{
                         "/" => app::layout::layout(children).into_node(),
                         _ => children,
-                    }
-                });
-            }
-            _ => {}
-        }
-    }
+                    }}
+                }});
+            }}
+            _ => {{}}
+        }}
+    }}
 
     registry
-}
+}}
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> anyhow::Result<()> {{
     let registry = build_registry();
 
     let config = ServerConfig::new("src/app", 3000);
     let server = DevServer::new(config, registry);
 
-    println!("Starting dev server at http://{}", server.addr());
+    println!("Starting dev server at http://{{}}", server.addr());
     server.run().await
-}
-"#;
+}}
+"#,
+        name.replace("-", "_")
+    );
     fs::write(project_dir.join("src/main.rs"), content).context("Failed to write main.rs")?;
 
     fs::create_dir_all(project_dir.join("src/app")).context("Failed to create app dir")?;
@@ -168,14 +220,23 @@ pub fn layout(children: Node) -> impl IntoNode {
 }
 
 fn create_home_page(project_dir: &Path) -> Result<()> {
-    let content = r#"use react_rs_elements::html::*;
+    let content = r#"use react_rs_core::create_signal;
+use react_rs_elements::html::*;
 use react_rs_elements::node::IntoNode;
+use react_rs_elements::SignalExt;
 
 pub fn page() -> impl IntoNode {
+    let (count, set_count) = create_signal(0);
+    
     div()
         .class("container")
         .child(h1().text("Welcome to next.rs"))
         .child(p().text("Edit src/app/page.rs to get started."))
+        .child(
+            button()
+                .text_reactive(count.map(|n| format!("Count: {}", n)))
+                .on_click(move |_| { set_count.update(|n| *n += 1); })
+        )
         .child(
             p().text("Pure Rust API. No macros. AI-friendly.")
         )

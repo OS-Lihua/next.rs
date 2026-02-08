@@ -13,6 +13,11 @@ pub async fn run_dev_server(port: u16) -> Result<()> {
 
     println!("Scanning routes in {:?}...", app_dir);
 
+    if let Err(e) = compile_wasm_dev() {
+        eprintln!("⚠ WASM compilation skipped: {}", e);
+        eprintln!("  Server will run in SSR-only mode.");
+    }
+
     let config = ServerConfig::new(&app_dir, port);
     let registry = PageRegistry::new();
     let server = DevServer::new(config, registry);
@@ -88,6 +93,7 @@ pub async fn run_dev_server(port: u16) -> Result<()> {
                     match status {
                         Ok(s) if s.success() => {
                             compile_tailwind();
+                            let _ = compile_wasm_dev();
                             println!("✓ Build successful. Reload the browser to see changes.\n");
                         }
                         Ok(_) => {
@@ -117,6 +123,81 @@ fn find_app_dir() -> Result<PathBuf> {
     }
 
     anyhow::bail!("No app directory found. Expected 'src/app' or 'app' in current directory.")
+}
+
+fn compile_wasm_dev() -> Result<()> {
+    let has_wasm_target = Command::new("rustup")
+        .args(["target", "list", "--installed"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).contains("wasm32-unknown-unknown"))
+        .unwrap_or(false);
+
+    if !has_wasm_target {
+        anyhow::bail!("wasm32-unknown-unknown target not installed");
+    }
+
+    let has_wasm_bindgen = Command::new("wasm-bindgen")
+        .arg("--version")
+        .output()
+        .is_ok();
+
+    if !has_wasm_bindgen {
+        anyhow::bail!("wasm-bindgen-cli not found");
+    }
+
+    println!("Compiling WASM (dev mode)...");
+
+    let status = Command::new("cargo")
+        .args(["build", "--target", "wasm32-unknown-unknown", "--lib"])
+        .status()
+        .context("Failed to run WASM build")?;
+
+    if !status.success() {
+        anyhow::bail!("WASM build failed");
+    }
+
+    let pkg_dir = PathBuf::from("pkg");
+    std::fs::create_dir_all(&pkg_dir).context("Failed to create pkg directory")?;
+
+    let pkg_name = get_package_name().unwrap_or_else(|| "app".to_string());
+    let wasm_file = PathBuf::from(format!(
+        "target/wasm32-unknown-unknown/debug/{}.wasm",
+        pkg_name.replace('-', "_")
+    ));
+
+    if wasm_file.exists() {
+        let status = Command::new("wasm-bindgen")
+            .args([
+                wasm_file.to_str().unwrap(),
+                "--out-dir",
+                pkg_dir.to_str().unwrap(),
+                "--target",
+                "web",
+                "--no-typescript",
+            ])
+            .status()
+            .context("Failed to run wasm-bindgen")?;
+
+        if !status.success() {
+            anyhow::bail!("wasm-bindgen failed");
+        }
+    }
+
+    println!("  WASM compiled successfully");
+    Ok(())
+}
+
+fn get_package_name() -> Option<String> {
+    let content = std::fs::read_to_string("Cargo.toml").ok()?;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("name") {
+            if let Some(name) = trimmed.split('=').nth(1) {
+                return Some(name.trim().trim_matches('"').to_string());
+            }
+        }
+    }
+    None
 }
 
 fn compile_tailwind() {
